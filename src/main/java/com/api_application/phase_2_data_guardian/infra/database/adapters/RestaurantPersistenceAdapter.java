@@ -2,6 +2,7 @@ package com.api_application.phase_2_data_guardian.infra.database.adapters;
 
 import com.api_application.phase_2_data_guardian.application.repository.RestaurantRepository;
 import com.api_application.phase_2_data_guardian.domain.entity.Restaurant;
+import com.api_application.phase_2_data_guardian.domain.exception.ResourceNotFoundException;
 import com.api_application.phase_2_data_guardian.infra.database.entity.RestaurantJpaEntity;
 import com.api_application.phase_2_data_guardian.infra.database.entity.UserJpaEntity;
 import com.api_application.phase_2_data_guardian.infra.database.mapper.RestaurantPersistenceMapper;
@@ -33,9 +34,9 @@ public class RestaurantPersistenceAdapter implements RestaurantRepository {
     public Restaurant save(Restaurant restaurant) {
         UserJpaEntity userEntity =
                 this.userRepository.findById(restaurant.getOwnerId())
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                "Owner not found" + restaurant.getOwnerId())
-                        );
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Owner", restaurant.getOwnerId()
+                        ));
 
         RestaurantJpaEntity entity = mapper.toJpaEntity(restaurant, userEntity);
 

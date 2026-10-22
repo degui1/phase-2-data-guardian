@@ -1,6 +1,7 @@
 package com.api_application.phase_2_data_guardian.infra.http.controllers;
 
 import com.api_application.phase_2_data_guardian.application.usecase.MenuItemUseCase;
+import com.api_application.phase_2_data_guardian.domain.entity.MenuItem;
 import com.api_application.phase_2_data_guardian.infra.http.dto.request.menuitem.CreateMenuItemRequest;
 import com.api_application.phase_2_data_guardian.infra.http.dto.request.menuitem.UpdateMenuItemRequest;
 import com.api_application.phase_2_data_guardian.infra.http.dto.response.MenuItemResponse;
@@ -12,6 +13,9 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.net.URI;
 
 @RestController
 @RequestMapping("/restaurants/{restaurantId}/menu-items")
@@ -19,13 +23,46 @@ public class MenuItemController {
 
     private final MenuItemUseCase menuItemUseCase;
 
+    public MenuItemController(MenuItemUseCase menuItemUseCase) {
+        this.menuItemUseCase = menuItemUseCase;
+    }
+
     @PostMapping
     public ResponseEntity<MenuItemResponse> create(
-            @PathVariable Long restaurantId, @Valid @RequestBody CreateMenuItemRequest request) {
+            @PathVariable Long restaurantId,
+            @RequestHeader("X-User-Id") Long userId,
+            @Valid @RequestBody CreateMenuItemRequest request
+    ) {
+        MenuItem menuItem = new MenuItem(
+                restaurantId,
+                request.name(),
+                request.description(),
+                request.priceInCents(),
+                request.dineInOnly(),
+                request.imagePath()
+        );
 
-        menuItemUseCase.create()
+        MenuItem createdMenuItem = menuItemUseCase.create(userId, menuItem);
 
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+        MenuItemResponse response = new MenuItemResponse(
+                createdMenuItem.getId(),
+                createdMenuItem.getRestaurantId(),
+                createdMenuItem.getName(),
+                createdMenuItem.getDescription(),
+                createdMenuItem.getPriceInCents(),
+                createdMenuItem.getDineInOnly(),
+                createdMenuItem.getImagePath(),
+                createdMenuItem.getCreatedAt(),
+                createdMenuItem.getUpdatedAt()
+        );
+
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .path("/{menuItemId}")
+                .buildAndExpand(createdMenuItem.getId())
+                .toUri();
+
+        return ResponseEntity.created(location).body(response);
     }
 
     @GetMapping

@@ -2,6 +2,7 @@ package com.api_application.phase_2_data_guardian.infra.database.adapters;
 
 import com.api_application.phase_2_data_guardian.application.repository.MenuItemRepository;
 import com.api_application.phase_2_data_guardian.domain.entity.MenuItem;
+import com.api_application.phase_2_data_guardian.domain.exception.ResourceNotFoundException;
 import com.api_application.phase_2_data_guardian.infra.database.entity.MenuItemJpaEntity;
 import com.api_application.phase_2_data_guardian.infra.database.entity.RestaurantJpaEntity;
 import com.api_application.phase_2_data_guardian.infra.database.mapper.MenuItemPersistenceMapper;
@@ -33,8 +34,8 @@ public class MenuItemPersistenceAdapter implements MenuItemRepository {
     public MenuItem save(MenuItem menuItem) {
         RestaurantJpaEntity restaurantJpa =
                 restaurantRepository.findById(menuItem.getRestaurantId())
-                        .orElseThrow(() -> new IllegalArgumentException(
-                           "Restaurant not found " + menuItem.getRestaurantId()
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Restaurant", menuItem.getRestaurantId()
                         ));
 
         MenuItemJpaEntity entity = mapper.toJpaEntity(menuItem, restaurantJpa);

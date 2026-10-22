@@ -2,6 +2,7 @@ package com.api_application.phase_2_data_guardian.infra.database.adapters;
 
 import com.api_application.phase_2_data_guardian.application.repository.UserRepository;
 import com.api_application.phase_2_data_guardian.domain.entity.User;
+import com.api_application.phase_2_data_guardian.domain.exception.ResourceNotFoundException;
 import com.api_application.phase_2_data_guardian.infra.database.entity.UserJpaEntity;
 import com.api_application.phase_2_data_guardian.infra.database.entity.UserTypeJpaEntity;
 import com.api_application.phase_2_data_guardian.infra.database.mapper.UserPersistenceMapper;
@@ -33,8 +34,8 @@ public class UserPersistenceAdapter implements UserRepository {
     public User save(User user) {
         UserTypeJpaEntity userType =
                 userTypeJpaRepository.findById(user.getUserTypeId())
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                "User type not found" + user.getUserTypeId()
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "User type", user.getUserTypeId()
                         ));
 
         UserJpaEntity entity = mapper.toJpaEntity(user, userType);

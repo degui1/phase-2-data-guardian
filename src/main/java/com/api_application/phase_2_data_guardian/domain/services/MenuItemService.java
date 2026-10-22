@@ -5,8 +5,10 @@ import com.api_application.phase_2_data_guardian.application.repository.Restaura
 import com.api_application.phase_2_data_guardian.application.usecase.MenuItemUseCase;
 import com.api_application.phase_2_data_guardian.domain.entity.MenuItem;
 import com.api_application.phase_2_data_guardian.domain.entity.Restaurant;
+import com.api_application.phase_2_data_guardian.domain.exception.BusinessRuleException;
+import com.api_application.phase_2_data_guardian.domain.exception.ForbiddenOperationException;
+import com.api_application.phase_2_data_guardian.domain.exception.ResourceNotFoundException;
 
-import java.nio.file.AccessDeniedException;
 import java.util.List;
 
 public class MenuItemService implements MenuItemUseCase {
@@ -23,7 +25,7 @@ public class MenuItemService implements MenuItemUseCase {
     }
 
     @Override
-    public MenuItem create(Long userId, MenuItem menuItem) throws AccessDeniedException {
+    public MenuItem create(Long userId, MenuItem menuItem) {
         checkOwner(userId, menuItem.getRestaurantId());
 
         return repository.save(menuItem);
@@ -36,14 +38,15 @@ public class MenuItemService implements MenuItemUseCase {
 
     @Override
     public MenuItem findById(Long id) {
-        return repository.findById(id).orElseThrow(() -> new IllegalArgumentException("Menu not found"));
+        return repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Menu item", id));
     }
 
     @Override
-    public MenuItem update(Long userId, MenuItem menuItem) throws AccessDeniedException {
+    public MenuItem update(Long userId, MenuItem menuItem) {
         MenuItem menu = repository
                 .findById(menuItem.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Menu item does not exist"));
+                .orElseThrow(() -> new ResourceNotFoundException("Menu item", menuItem.getId()));
 
 
         checkOwner(userId, menu.getRestaurantId());
@@ -52,11 +55,11 @@ public class MenuItemService implements MenuItemUseCase {
         Long price = menuItem.getPriceInCents();
 
         if (newName == null || newName.isBlank()) {
-            throw new IllegalArgumentException("Name invalid");
+            throw new BusinessRuleException("Menu item name must not be blank");
         }
 
         if (price == null || price < 0) {
-            throw new IllegalArgumentException("Price must be grater or equal to zero");
+            throw new BusinessRuleException("Menu item price must be greater than or equal to zero");
         }
 
         menu.setName(menuItem.getName());
@@ -69,23 +72,25 @@ public class MenuItemService implements MenuItemUseCase {
     }
 
     @Override
-    public void delete(Long userId, Long id) throws AccessDeniedException, IllegalArgumentException {
+    public void delete(Long userId, Long id) {
         MenuItem menu = repository
                 .findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Menu item does not exist"));
+                .orElseThrow(() -> new ResourceNotFoundException("Menu item", id));
 
         checkOwner(userId, menu.getRestaurantId());
 
         repository.delete(menu);
     }
 
-    private void checkOwner(Long userId, Long restaurantId) throws AccessDeniedException {
+    private void checkOwner(Long userId, Long restaurantId) {
         Restaurant rest = restaurantRepository
                 .findById(restaurantId)
-                .orElseThrow(() -> new IllegalArgumentException("Restaurant not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Restaurant", restaurantId));
 
         if (!rest.getOwnerId().equals(userId)) {
-            throw new AccessDeniedException("Only the restaurant can its own menu");
+            throw new ForbiddenOperationException(
+                    "Only the restaurant owner can modify its menu"
+            );
         }
     }
 }
