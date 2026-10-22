@@ -8,6 +8,8 @@ import com.api_application.phase_2_data_guardian.domain.entity.Restaurant;
 import com.api_application.phase_2_data_guardian.domain.exception.BusinessRuleException;
 import com.api_application.phase_2_data_guardian.domain.exception.ForbiddenOperationException;
 import com.api_application.phase_2_data_guardian.domain.exception.ResourceNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -32,8 +34,17 @@ public class MenuItemService implements MenuItemUseCase {
     }
 
     @Override
-    public List<MenuItem> findByRestaurantId(Long restaurantId) {
-        return repository.findByRestaurantId(restaurantId);
+    public Page<MenuItem> findByRestaurantId(Long restaurantId, Pageable pageable) {
+        restaurantRepository
+                .findById(restaurantId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Restaurant",
+                                restaurantId
+                        )
+                );
+
+        return repository.findByRestaurantId(restaurantId, pageable);
     }
 
     @Override

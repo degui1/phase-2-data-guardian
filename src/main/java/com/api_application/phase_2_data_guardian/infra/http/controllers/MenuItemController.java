@@ -68,8 +68,27 @@ public class MenuItemController {
     @GetMapping
     public ResponseEntity<Page<MenuItemResponse>> findAll(
             @PathVariable Long restaurantId,
-            @PageableDefault(size = 10, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+            @PageableDefault(
+                    size = 10,
+                    sort = "name",
+                    direction = Sort.Direction.ASC
+            ) Pageable pageable
+    ) {
+        Page<MenuItemResponse> menuItems = menuItemUseCase
+                .findByRestaurantId(restaurantId, pageable)
+                .map((item) -> new MenuItemResponse(
+                        item.getId(),
+                        item.getRestaurantId(),
+                        item.getName(),
+                        item.getDescription(),
+                        item.getPriceInCents(),
+                        item.getDineInOnly(),
+                        item.getImagePath(),
+                        item.getCreatedAt(),
+                        item.getUpdatedAt())
+                );
+
+        return ResponseEntity.ok(menuItems);
     }
 
     @GetMapping("/{menuItemId}")
