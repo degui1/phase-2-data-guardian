@@ -94,14 +94,49 @@ public class MenuItemController {
     @GetMapping("/{menuItemId}")
     public ResponseEntity<MenuItemResponse> findById(
             @PathVariable Long restaurantId, @PathVariable Long menuItemId) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+        MenuItem menuItem = menuItemUseCase.findById(menuItemId);
+
+        return ResponseEntity.ok(new MenuItemResponse(
+                menuItem.getId(),
+                menuItem.getRestaurantId(),
+                menuItem.getName(),
+                menuItem.getDescription(),
+                menuItem.getPriceInCents(),
+                menuItem.getDineInOnly(),
+                menuItem.getImagePath(),
+                menuItem.getCreatedAt(),
+                menuItem.getUpdatedAt()
+        ));
     }
 
     @PutMapping("/{menuItemId}")
     public ResponseEntity<MenuItemResponse> update(
             @PathVariable Long restaurantId, @PathVariable Long menuItemId,
             @Valid @RequestBody UpdateMenuItemRequest request) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+        MenuItem menuItem = new MenuItem(
+                restaurantId,
+                request.name(),
+                request.description(),
+                request.priceInCents(),
+                request.dineInOnly(),
+                request.imagePath()
+        );
+
+        MenuItem updatedMenuItem = menuItemUseCase.update(userId, menuItem);
+
+        MenuItemResponse response = new MenuItemResponse(
+                updatedMenuItem.getId(),
+                updatedMenuItem.getRestaurantId(),
+                updatedMenuItem.getName(),
+                updatedMenuItem.getDescription(),
+                updatedMenuItem.getPriceInCents(),
+                updatedMenuItem.getDineInOnly(),
+                updatedMenuItem.getImagePath(),
+                updatedMenuItem.getCreatedAt(),
+                updatedMenuItem.getUpdatedAt()
+        );
+
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{menuItemId}")
