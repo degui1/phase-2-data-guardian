@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Relatório de Pendências — Tech Challenge Fase 2</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #64748b;
+      --paper: #ffffff;
+      --canvas: #f4f7fb;
+      --line: #dbe3ef;
+      --primary: #173f73;
+      --accent: #e0672f;
+      --success: #16835f;
+      --warning: #b76a05;
+      --danger: #b93838;
+      --shadow: 0 18px 48px rgba(23, 63, 115, .10);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 90% 0%, rgba(224,103,47,.10), transparent 28rem),
+        linear-gradient(180deg, #edf3fa 0, var(--canvas) 22rem);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.65;
+    }
+    .hero {
+      color: white;
+      padding: 58px 24px 86px;
+      background: linear-gradient(135deg, #102c52 0%, #174c83 70%, #1b618e 100%);
+    }
+    .hero-inner, main { max-width: 1040px; margin: 0 auto; }
+    .eyebrow {
+      margin: 0 0 12px;
+      color: #bdd9f5;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      font-size: .78rem;
+    }
+    .hero h1 { margin: 0; max-width: 850px; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.05; }
+    .hero p { max-width: 740px; margin: 18px 0 0; color: #dbeaf8; font-size: 1.06rem; }
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 30px; }
+    .metric { padding: 16px 18px; border: 1px solid rgba(255,255,255,.18); border-radius: 14px; background: rgba(255,255,255,.08); }
+    .metric strong { display: block; font-size: 1.6rem; }
+    .metric span { color: #dbeaf8; font-size: .88rem; }
+    main {
+      position: relative;
+      margin-top: -42px;
+      margin-bottom: 70px;
+      padding: 34px clamp(20px, 5vw, 64px) 64px;
+      border: 1px solid rgba(219,227,239,.9);
+      border-radius: 22px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+    .toolbar { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 8px; }
+    .toolbar a {
+      color: var(--primary);
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: .86rem;
+    }
+    h1:first-child { display: none; }
+    h2 { margin: 48px 0 16px; padding-bottom: 10px; border-bottom: 2px solid var(--line); color: var(--primary); font-size: 1.55rem; }
+    h3 { margin: 30px 0 10px; color: #244f78; font-size: 1.17rem; }
+    p { margin: 10px 0 16px; }
+    ul, ol { padding-left: 1.35rem; }
+    li { margin: 7px 0; }
+    code { padding: .15em .42em; color: #973f1a; background: #fff2eb; border-radius: 5px; font-size: .9em; }
+    table { display: block; width: 100%; overflow-x: auto; border-collapse: collapse; margin: 18px 0 28px; }
+    th, td { min-width: 150px; padding: 13px 14px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: white; background: var(--primary); }
+    tr:nth-child(even) td { background: #f8fafc; }
+    input[type="checkbox"] { width: 1.05rem; height: 1.05rem; margin-right: .45rem; accent-color: var(--success); vertical-align: -2px; }
+    blockquote { margin: 18px 0; padding: 12px 18px; border-left: 4px solid var(--accent); background: #fff8f3; }
+    a { color: #175b9c; }
+    hr { margin: 36px 0; border: 0; border-top: 1px solid var(--line); }
+    footer { max-width: 1040px; margin: -42px auto 44px; padding: 0 24px; color: var(--muted); text-align: center; font-size: .88rem; }
+    @media (max-width: 720px) {
+      .metrics { grid-template-columns: 1fr; }
+      .hero { padding-top: 42px; }
+      main { margin-left: 12px; margin-right: 12px; border-radius: 16px; }
+    }
+    @media print {
+      body { background: white; font-size: 10.5pt; }
+      .hero { padding: 24px; background: white; color: var(--ink); border-bottom: 2px solid var(--primary); }
+      .hero p, .eyebrow, .metric span { color: var(--ink); }
+      .metrics { grid-template-columns: repeat(3, 1fr); }
+      .metric { border-color: var(--line); background: white; }
+      main { margin: 0; padding: 18px 0; border: 0; box-shadow: none; max-width: none; }
+      .toolbar, footer { display: none; }
+      h2 { break-after: avoid; }
+      table, ul, ol { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <p class="eyebrow">FIAP · Tech Challenge · Fase 2</p>
+      <h1>Relatório de pendências e plano de entrega</h1>
+      <p>Auditoria do projeto phase-2-data-guardian, com checklist funcional, técnico e acadêmico para concluir todos os entregáveis.</p>
+      <div class="metrics">
+        <div class="metric"><strong>9</strong><span>entregáveis avaliados</span></div>
+        <div class="metric"><strong>80%</strong><span>cobertura mínima exigida</span></div>
+        <div class="metric"><strong>~5 min</strong><span>duração esperada do vídeo</span></div>
+      </div>
+    </div>
+  </header>
+  <main>
+    <div class="toolbar">
+      <a href="PHASE_2_REMAINING_TASKS.md">Ver fonte Markdown</a>
+      <a href="javascript:window.print()">Imprimir / salvar PDF</a>
+    </div>
+    <h1 id="relatorio-de-pendencias-tech-challenge-fase-2">Relatório de pendências — Tech Challenge Fase 2</h1>
+<p>Projeto auditado: C:\projects\Java\fiap\phase-2-data-guardian<br />
+Data da auditoria: 26/10/2026</p>
+<h2 id="resumo">Resumo</h2>
+<p>O projeto possui entidades de domínio/JPA, DTOs, repositórios, adapters, mappers, erros customizados e parte do módulo de cardápio. Ainda não está pronto para entrega: faltam funcionalidades obrigatórias, banco reproduzível, Docker, testes, documentação, collection, repositório público confirmado e vídeo.</p>
+<h2 id="status-dos-entregaveis-obrigatorios">Status dos entregáveis obrigatórios</h2>
+<table>
+<thead>
+<tr>
+<th>Entregável</th>
+<th>Status</th>
+<th>Principal pendência</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Funcionalidades</td>
+<td>Parcial</td>
+<td>User type, associação e restaurante retornam 501; menu update/delete incompletos</td>
+</tr>
+<tr>
+<td>Qualidade</td>
+<td>Parcial</td>
+<td>Corrigir inconsistências, duplicação e validar build</td>
+</tr>
+<tr>
+<td>Documentação</td>
+<td>Ausente</td>
+<td>Criar README completo</td>
+</tr>
+<tr>
+<td>Collection</td>
+<td>Ausente</td>
+<td>Criar e testar Postman/Insomnia/Bruno</td>
+</tr>
+<tr>
+<td>Docker Compose</td>
+<td>Ausente</td>
+<td>Criar Dockerfile, Compose e healthcheck</td>
+</tr>
+<tr>
+<td>Repositório aberto</td>
+<td>Não confirmado</td>
+<td>Publicar e testar clone limpo</td>
+</tr>
+<tr>
+<td>Clean Architecture</td>
+<td>Parcial</td>
+<td>Só MenuItem possui use case/service</td>
+</tr>
+<tr>
+<td>Testes 80%</td>
+<td>Ausente</td>
+<td>Apenas contextLoads; falta JaCoCo</td>
+</tr>
+<tr>
+<td>Vídeo</td>
+<td>Ausente</td>
+<td>Gravar aproximadamente cinco minutos</td>
+</tr>
+</tbody>
+</table>
+<h2 id="funcionalidades">Funcionalidades</h2>
+<h3 id="tipos-de-usuario">Tipos de usuário</h3>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar UserTypeUseCase, UserTypeService e bean de configuração.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Implementar POST, GET paginado, GET por ID, PUT e DELETE.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Impedir nomes duplicados ignorando maiúsculas/minúsculas.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Retornar 409 ao excluir tipo associado a usuários.</li>
+</ul>
+<h3 id="associacao-usuariotipo">Associação usuário/tipo</h3>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar caso de uso e serviço.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Implementar PUT /users//user-type.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Implementar GET /users//user-type.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Validar existência de usuário e tipo.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Confirmar se o CRUD da Fase 1 precisa permanecer nesta entrega.</li>
+</ul>
+<h3 id="restaurantes">Restaurantes</h3>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar RestaurantUseCase, RestaurantService e bean.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Implementar CRUD completo e listagem paginada.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Validar existência e tipo do proprietário.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Validar horários inválidos e períodos sobrepostos.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Definir exclusão de restaurante com itens associados.</li>
+</ul>
+<h3 id="itens-do-cardapio">Itens do cardápio</h3>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> Criar item.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> Listar por restaurante com paginação.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> Consultar por ID, ainda sem validar o restaurante da URL.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Corrigir update: userId não está declarado e menuItemId não é atribuído.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Implementar delete; ainda retorna 501.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Buscar por menuItemId e restaurantId juntos em consulta/update/delete.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Receber X-User-Id em update/delete enquanto não houver autenticação.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Extrair toResponse ou mapper HTTP.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Remover findAll global se não for usado.</li>
+</ul>
+<h3 id="contrato-http">Contrato HTTP</h3>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Aplicar /api/v1 se essa continuar sendo a decisão.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Padronizar 201 criação, 200 leitura/update e 204 delete.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Manter IDs dos recursos nas respostas.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Padronizar 400, 403, 404 e 409.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Escolher ProblemDetail ou ApiErrorResponse; hoje ambos coexistem.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Documentar page, size, sort e página inicial zero.</li>
+</ul>
+<h2 id="banco-de-dados">Banco de dados</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Configurar conexão por variáveis de ambiente.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar configurações local, teste e Docker.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Definir estratégia de schema do Hibernate.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Preferencialmente adicionar Flyway e migrations.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar FKs, índices e constraints.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar dados iniciais de Restaurant Owner e Customer, se necessário.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Confirmar preço em centavos com Long.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Testar horários, orphanRemoval e timestamps.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Não versionar credenciais.</li>
+</ul>
+<p>Migrations não são exigidas literalmente, mas tornam o banco reproduzível e melhoram a qualidade.</p>
+<h2 id="seguranca">Segurança</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Decidir se autenticação faz parte desta fase.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Se não fizer, simplificar a configuração incompleta e documentar X-User-Id.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Se fizer, obter usuário do contexto de segurança, não de header manipulável.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Completar authorizeHttpRequests e testar autorização.</li>
+</ul>
+<p>Autenticação não aparece como requisito explícito. Ela não deve bloquear os CRUDs obrigatórios.</p>
+<h2 id="docker">Docker</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar Dockerfile multi-stage e .dockerignore.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar docker-compose.yml com aplicação e MySQL.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Usar variáveis de ambiente para credenciais.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Adicionar volume e healthcheck.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Aguardar o banco saudável.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Validar docker compose up --build em ambiente limpo.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Documentar subida, logs e encerramento.</li>
+</ul>
+<h2 id="testes-e-cobertura">Testes e cobertura</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Adicionar JaCoCo e regra mínima de 80%.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar profile/banco de testes.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Considerar Testcontainers com MySQL.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Testar todos os services e regras de negócio.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Testar todos os mappers nas duas direções.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Testar controllers com MockMvc e validações.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Testar paginação e ordenação.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Testar repositórios JPA e relacionamentos.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar integrações controller → use case → adapter → banco.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Cobrir 201, 200, 204, 400, 403, 404 e 409.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Manter contextLoads, sem tratá-lo como cobertura suficiente.</li>
+</ul>
+<h2 id="collection-postman-ou-similar">Collection Postman ou similar</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Versionar collection e environment.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Usar variáveis baseUrl, userId, userTypeId, restaurantId e menuItemId.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Cobrir todos os CRUDs, associação, paginação e ordenação.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Salvar IDs automaticamente.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Validar status e campos.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Incluir cenários negativos.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Executar tudo contra o Docker Compose.</li>
+</ul>
+<h2 id="documentacao">Documentação</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar README próprio; HELP.md é apenas do Spring Initializr.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Explicar problema, escopo, tecnologias e versões.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Explicar camadas e estrutura.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Adicionar diagramas de arquitetura e dados.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Documentar endpoints, headers, bodies, respostas e status.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Documentar paginação, variáveis, execução local/Docker e testes.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Informar collection, integrantes e links.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Registrar decisões: Long, centavos e autenticação.</li>
+</ul>
+<p>Swagger/OpenAPI não é obrigatório. README e collection podem cumprir a documentação da API.</p>
+<h2 id="repositorio">Repositório</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Publicar/confirmar GitHub ou GitLab público.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Confirmar clone em outra pasta.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Ignorar .idea, target, segredos e arquivos locais.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Organizar commits.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Versionar README, Docker, collection, migrations e testes.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Executar tudo a partir de clone limpo.</li>
+</ul>
+<h2 id="video-de-aproximadamente-cinco-minutos">Vídeo de aproximadamente cinco minutos</h2>
+<ol>
+<li>0:00–0:30 — problema, integrantes e objetivo.</li>
+<li>0:30–1:10 — arquitetura e camadas.</li>
+<li>1:10–1:40 — Docker Compose.</li>
+<li>1:40–3:50 — CRUDs de tipos, associação, restaurante e cardápio.</li>
+<li>3:50–4:20 — validação e erro 403/404.</li>
+<li>4:20–4:45 — testes e cobertura ≥ 80%.</li>
+<li>4:45–5:00 — README, collection e repositório.</li>
+</ol>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Ensaiar, garantir legibilidade e não mostrar credenciais.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Adicionar link do vídeo à entrega.</li>
+</ul>
+<h2 id="problemas-encontrados-no-codigo">Problemas encontrados no código</h2>
+<ol>
+<li>UserTypeController, UserController e RestaurantController retornam 501.</li>
+<li>MenuItemController.delete retorna 501.</li>
+<li>MenuItemController.update usa userId sem declará-lo.</li>
+<li>Update não atribui menuItemId; o service busca ID nulo.</li>
+<li>FindById de menu ignora restaurantId.</li>
+<li>Há findAll global de menu aparentemente sem uso.</li>
+<li>Só existem MenuItemUseCase e MenuItemService.</li>
+<li>application.properties só possui o nome da aplicação.</li>
+<li>Segurança está incompleta.</li>
+<li>Existe apenas contextLoads.</li>
+<li>Não há Docker, collection, migrations ou README próprio.</li>
+<li>ProblemDetail e ApiErrorResponse coexistem.</li>
+</ol>
+<h2 id="ordem-recomendada">Ordem recomendada</h2>
+<ol>
+<li>Fazer compilar/executar: corrigir menu, banco e segurança provisória.</li>
+<li>Concluir funcionalidades: tipos, associação, restaurantes e cardápio.</li>
+<li>Tornar reproduzível: migrations, Docker e dados de demonstração.</li>
+<li>Garantir qualidade: testes unitários/integrados e JaCoCo ≥ 80%.</li>
+<li>Produzir entrega: README, collection, repositório e vídeo.</li>
+</ol>
+<h2 id="criterio-de-pronto">Critério de pronto</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Nenhum endpoint obrigatório retorna 501.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Docker Compose inicia aplicação e banco do zero.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Collection executa o fluxo completo.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Testes passam e JaCoCo comprova pelo menos 80%.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> README permite execução sem ajuda.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Repositório está público e sem segredos.</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Vídeo demonstra funcionalidades, arquitetura, Docker e testes.</li>
+</ul>
+
+  </main>
+  <footer>Relatório gerado em 26/10/2026 · phase-2-data-guardian</footer>
+</body>
+</html>

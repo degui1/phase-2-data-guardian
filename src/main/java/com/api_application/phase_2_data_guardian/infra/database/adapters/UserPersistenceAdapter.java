@@ -39,7 +39,6 @@ public class UserPersistenceAdapter implements UserRepository {
                         ));
 
         UserJpaEntity entity = mapper.toJpaEntity(user, userType);
-
         UserJpaEntity savedEntity = this.repository.save(entity);
 
         return mapper.toDomain(savedEntity);
@@ -48,6 +47,11 @@ public class UserPersistenceAdapter implements UserRepository {
     @Override
     public Optional<User> findById(Long id) {
         return repository.findById(id).map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<User> findByEmailIgnoreCase(String email) {
+        return repository.findByEmailIgnoreCase(email).map(mapper::toDomain);
     }
 
     @Override

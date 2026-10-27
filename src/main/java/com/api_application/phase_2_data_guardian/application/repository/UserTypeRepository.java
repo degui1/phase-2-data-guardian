@@ -11,6 +11,8 @@ public interface UserTypeRepository {
 
     Optional<UserType> findById(Long id);
 
+    Optional<UserType> findByNameIgnoreCase(String name);
+
     List<UserType> findAll();
 
     boolean existsByNameIgnoreCase(String name);

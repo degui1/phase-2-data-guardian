@@ -27,7 +27,6 @@ public class UserTypePersistenceAdapter implements UserTypeRepository {
     @Override
     public UserType save(UserType userType) {
         UserTypeJpaEntity entity = mapper.toJpaEntity(userType);
-
         UserTypeJpaEntity savedEntity = repository.save(entity);
 
         return mapper.toDomain(savedEntity);
@@ -36,6 +35,13 @@ public class UserTypePersistenceAdapter implements UserTypeRepository {
     @Override
     public Optional<UserType> findById(Long id) {
         return repository.findById(id).map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<UserType> findByNameIgnoreCase(String name) {
+        return repository
+                .findByNameIgnoreCase(name)
+                .map(mapper::toDomain);
     }
 
     @Override
@@ -50,6 +56,6 @@ public class UserTypePersistenceAdapter implements UserTypeRepository {
 
     @Override
     public void delete(UserType userType) {
-        this.repository.deleteById(userType.getId());
+        repository.deleteById(userType.getId());
     }
 }

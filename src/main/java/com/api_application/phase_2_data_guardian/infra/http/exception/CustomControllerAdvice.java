@@ -1,6 +1,7 @@
 package com.api_application.phase_2_data_guardian.infra.http.exception;
 
 import com.api_application.phase_2_data_guardian.domain.exception.BusinessRuleException;
+import com.api_application.phase_2_data_guardian.domain.exception.ConflictException;
 import com.api_application.phase_2_data_guardian.domain.exception.ForbiddenOperationException;
 import com.api_application.phase_2_data_guardian.domain.exception.ResourceNotFoundException;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
@@ -62,6 +63,20 @@ public class CustomControllerAdvice {
         return problem;
     }
 
+    @ExceptionHandler(ConflictException.class)
+    public ProblemDetail handleConflictException(
+            ConflictException exception
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.CONFLICT,
+                exception.getMessage()
+        );
+
+        problem.setTitle("Resource conflict");
+        problem.setProperty("code", "RESOURCE_CONFLICT");
+
+        return problem;
+    }
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail handleValidationException(
             MethodArgumentNotValidException exception
