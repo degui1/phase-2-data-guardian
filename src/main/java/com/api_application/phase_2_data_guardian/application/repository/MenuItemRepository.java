@@ -4,7 +4,6 @@ import com.api_application.phase_2_data_guardian.domain.entity.MenuItem;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import java.util.List;
 import java.util.Optional;
 
 public interface MenuItemRepository {
@@ -13,7 +12,7 @@ public interface MenuItemRepository {
 
     Optional<MenuItem> findById(Long id);
 
-    List<MenuItem> findAll();
+    Page<MenuItem> findAll(Pageable pageable);
 
     void delete(MenuItem menuItem);
 

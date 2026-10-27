@@ -27,6 +27,7 @@ public class MenuItemService implements MenuItemUseCase {
     @Override
     public MenuItem create(Long userId, MenuItem menuItem) {
         checkOwner(userId, menuItem.getRestaurantId());
+        validate(menuItem);
 
         return repository.save(menuItem);
     }
@@ -52,24 +53,15 @@ public class MenuItemService implements MenuItemUseCase {
     }
 
     @Override
-    public MenuItem update(Long userId, MenuItem menuItem) {
+    public MenuItem update(Long userId, Long id, MenuItem menuItem) {
         MenuItem menu = repository
-                .findById(menuItem.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Menu item", menuItem.getId()));
+                .findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Menu item", id));
 
 
         checkOwner(userId, menu.getRestaurantId());
 
-        String newName = menuItem.getName();
-        Long price = menuItem.getPriceInCents();
-
-        if (newName == null || newName.isBlank()) {
-            throw new BusinessRuleException("Menu item name must not be blank");
-        }
-
-        if (price == null || price < 0) {
-            throw new BusinessRuleException("Menu item price must be greater than or equal to zero");
-        }
+        validate(menuItem);
 
         menu.setName(menuItem.getName());
         menu.setDescription(menuItem.getDescription());
@@ -89,6 +81,15 @@ public class MenuItemService implements MenuItemUseCase {
         checkOwner(userId, menu.getRestaurantId());
 
         repository.delete(menu);
+    }
+
+    private void validate(MenuItem menuItem) {
+        if (menuItem.getName() == null || menuItem.getName().isBlank()) {
+            throw new BusinessRuleException("Menu item name must not be blank");
+        }
+        if (menuItem.getPriceInCents() == null || menuItem.getPriceInCents() < 0) {
+            throw new BusinessRuleException("Menu item price must be greater than or equal to zero");
+        }
     }
 
     private void checkOwner(Long userId, Long restaurantId) {

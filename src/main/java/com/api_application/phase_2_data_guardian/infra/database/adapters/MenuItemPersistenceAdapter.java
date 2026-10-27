@@ -12,7 +12,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -53,8 +52,8 @@ public class MenuItemPersistenceAdapter implements MenuItemRepository {
     }
 
     @Override
-    public List<MenuItem> findAll() {
-        return repository.findAll().stream().map(mapper::toDomain).toList();
+    public Page<MenuItem> findAll(Pageable pageable) {
+        return repository.findAll(pageable).map(mapper::toDomain);
     }
 
     @Override

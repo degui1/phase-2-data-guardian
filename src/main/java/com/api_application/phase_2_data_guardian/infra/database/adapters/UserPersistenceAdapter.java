@@ -8,9 +8,10 @@ import com.api_application.phase_2_data_guardian.infra.database.entity.UserTypeJ
 import com.api_application.phase_2_data_guardian.infra.database.mapper.UserPersistenceMapper;
 import com.api_application.phase_2_data_guardian.infra.database.repository.UserJpaRepository;
 import com.api_application.phase_2_data_guardian.infra.database.repository.UserTypeJpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -55,8 +56,8 @@ public class UserPersistenceAdapter implements UserRepository {
     }
 
     @Override
-    public List<User> findAll() {
-        return this.repository.findAll().stream().map(mapper::toDomain).toList();
+    public Page<User> findAll(Pageable pageable) {
+        return repository.findAll(pageable).map(mapper::toDomain);
     }
 
     @Override

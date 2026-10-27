@@ -5,30 +5,25 @@ import com.api_application.phase_2_data_guardian.domain.entity.UserType;
 import com.api_application.phase_2_data_guardian.infra.database.entity.UserTypeJpaEntity;
 import com.api_application.phase_2_data_guardian.infra.database.mapper.UserTypePersistenceMapper;
 import com.api_application.phase_2_data_guardian.infra.database.repository.UserTypeJpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Optional;
 
 @Component
 public class UserTypePersistenceAdapter implements UserTypeRepository {
-
     private final UserTypeJpaRepository repository;
     private final UserTypePersistenceMapper mapper;
 
-    public UserTypePersistenceAdapter(
-            UserTypeJpaRepository repository,
-            UserTypePersistenceMapper mapper
-    ) {
+    public UserTypePersistenceAdapter(UserTypeJpaRepository repository, UserTypePersistenceMapper mapper) {
         this.repository = repository;
         this.mapper = mapper;
     }
 
     @Override
     public UserType save(UserType userType) {
-        UserTypeJpaEntity entity = mapper.toJpaEntity(userType);
-        UserTypeJpaEntity savedEntity = repository.save(entity);
-
+        UserTypeJpaEntity savedEntity = repository.save(mapper.toJpaEntity(userType));
         return mapper.toDomain(savedEntity);
     }
 
@@ -39,14 +34,12 @@ public class UserTypePersistenceAdapter implements UserTypeRepository {
 
     @Override
     public Optional<UserType> findByNameIgnoreCase(String name) {
-        return repository
-                .findByNameIgnoreCase(name)
-                .map(mapper::toDomain);
+        return repository.findByNameIgnoreCase(name).map(mapper::toDomain);
     }
 
     @Override
-    public List<UserType> findAll() {
-        return repository.findAll().stream().map(mapper::toDomain).toList();
+    public Page<UserType> findAll(Pageable pageable) {
+        return repository.findAll(pageable).map(mapper::toDomain);
     }
 
     @Override

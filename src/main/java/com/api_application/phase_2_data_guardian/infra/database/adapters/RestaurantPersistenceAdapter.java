@@ -8,9 +8,10 @@ import com.api_application.phase_2_data_guardian.infra.database.entity.UserJpaEn
 import com.api_application.phase_2_data_guardian.infra.database.mapper.RestaurantPersistenceMapper;
 import com.api_application.phase_2_data_guardian.infra.database.repository.RestaurantJpaRepository;
 import com.api_application.phase_2_data_guardian.infra.database.repository.UserJpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -51,8 +52,8 @@ public class RestaurantPersistenceAdapter implements RestaurantRepository {
     }
 
     @Override
-    public List<Restaurant> findAll() {
-        return repository.findAll().stream().map(mapper::toDomain).toList();
+    public Page<Restaurant> findAll(Pageable pageable) {
+        return repository.findAll(pageable).map(mapper::toDomain);
     }
 
     @Override

@@ -10,8 +10,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -30,7 +30,7 @@ public class MenuItemController {
     @PostMapping
     public ResponseEntity<MenuItemResponse> create(
             @PathVariable Long restaurantId,
-            @RequestHeader("X-User-Id") Long userId,
+            Authentication authentication,
             @Valid @RequestBody CreateMenuItemRequest request
     ) {
         MenuItem menuItem = new MenuItem(
@@ -42,7 +42,7 @@ public class MenuItemController {
                 request.imagePath()
         );
 
-        MenuItem createdMenuItem = menuItemUseCase.create(userId, menuItem);
+        MenuItem createdMenuItem = menuItemUseCase.create(authenticatedUserId(authentication), menuItem);
 
         MenuItemResponse response = new MenuItemResponse(
                 createdMenuItem.getId(),
@@ -112,6 +112,7 @@ public class MenuItemController {
     @PutMapping("/{menuItemId}")
     public ResponseEntity<MenuItemResponse> update(
             @PathVariable Long restaurantId, @PathVariable Long menuItemId,
+            Authentication authentication,
             @Valid @RequestBody UpdateMenuItemRequest request) {
         MenuItem menuItem = new MenuItem(
                 restaurantId,
@@ -122,7 +123,7 @@ public class MenuItemController {
                 request.imagePath()
         );
 
-        MenuItem updatedMenuItem = menuItemUseCase.update(userId, menuItem);
+        MenuItem updatedMenuItem = menuItemUseCase.update(authenticatedUserId(authentication), menuItemId, menuItem);
 
         MenuItemResponse response = new MenuItemResponse(
                 updatedMenuItem.getId(),
@@ -141,7 +142,15 @@ public class MenuItemController {
 
     @DeleteMapping("/{menuItemId}")
     public ResponseEntity<Void> delete(
-            @PathVariable Long restaurantId, @PathVariable Long menuItemId) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+            Authentication authentication,
+            @PathVariable Long restaurantId,
+            @PathVariable Long menuItemId
+    ) {
+        menuItemUseCase.delete(authenticatedUserId(authentication), menuItemId);
+        return ResponseEntity.noContent().build();
+    }
+
+    private Long authenticatedUserId(Authentication authentication) {
+        return Long.valueOf(authentication.getName());
     }
 }
