@@ -4,45 +4,35 @@ Projeto auditado: `C:\projects\Java\fiap\phase-2-data-guardian` Última atualiza
 
 ## Resumo atual
 
-Os CRUDs obrigatórios de tipos de usuário, associação de usuários, restaurantes e itens de cardápio já possuem controllers, casos de uso, services, repositories, adapters e mappers.
+CRUDs de usuários, tipos, restaurantes e cardápio, registro, login e consulta autenticada implementados. README, Swagger e Postman disponíveis. Testes separados por camada e recurso, com H2 isolado e agentes Mockito/JaCoCo configurados no Maven.
 
-As listagens utilizam `Page` e `Pageable`. A aplicação compila com sucesso. A autenticação JWT está parcialmente implementada: emissão e validação do token foram estruturadas, a consulta completa do usuário autenticado foi concluída. O login foi implementado pelo usuário; sua validação fica sob responsabilidade dele.
+Última validação completa: 174 testes aprovados, sem falhas, erros ou ignorados. Cobertura: 92,45% de linhas, 90,00% de decisões e 94,21% de instruções. O limite mínimo de 80% de linhas na fase verify foi aprovado. Não há exclusões de classes configuradas na medição.
 
-O projeto ainda não está pronto para entrega. As principais pendências são: migrations e dados iniciais reproduzíveis, Docker Compose, testes automatizados com cobertura mínima de 80%, execução ponta a ponta da collection, repositório público confirmado e vídeo.
+## O que ainda falta — ordem recomendada
 
-## O que falta — ordem de prioridade
+1. Validar a aplicação com MySQL real e credenciais corretas; executar o preparo dos tipos iniciais no banco de destino.
+2. Criar migrations e dados iniciais reproduzíveis. O SQL manual de preparo já existe; sua execução e o fluxo de migrations ainda precisam ser validados.
+3. Criar Dockerfile, .dockerignore e Compose com aplicação/MySQL, volume, variáveis e healthcheck; validar inicialização do zero e documentar os comandos.
+4. Executar a collection de 53 requisições contra a API com MySQL e depois contra Compose. Login já está ativo; conferir tokens, IDs, cenários negativos e limpeza.
+5. Completar integrantes e links finais do README, revisar o conteúdo para publicação, confirmar repositório público e validar um clone limpo.
+6. Preparar e gravar vídeo de aproximadamente cinco minutos; incluir o link na entrega.
 
-README, Swagger e arquivos do Postman já foram criados. A compilação passou. Validação mais recente: 114 testes dos módulos de negócio passaram após o CRUD de usuários, incluindo contextLoads com H2 isolado. Os 57 testes acrescentados anteriormente foram reorganizados por camada/recurso; um caso misto foi dividido em dois, preservando todas as asserções. Os testes ligados a AuthUseCase, login e segurança não foram criados nem executados nesta rodada; ficam com o usuário, conforme combinado.
+Melhoria opcional: extrair mappers HTTP nos demais controllers; cardápio e perfis de usuário já usam mappers. H2 não substitui a validação no MySQL real.
 
-1. **Banco local:** configurar credenciais válidas para o MySQL e confirmar que a aplicação inicia. Executar postman/setup-user-types.sql no banco correto; o script existe, mas não foi executado nesta sessão.
-2. **Validação MySQL:** o profile test com H2 em memória foi criado e contextLoads passou. Ainda é necessário validar os cenários contra MySQL real/Compose; H2 não comprova equivalência completa ao MySQL.
-3. **Cobertura:** testes de negócio, controllers, mappers, repositories, FKs, relacionamentos e paginação foram ampliados e passaram com H2. Adicionar JaCoCo, medir a cobertura e completar os cenários faltantes até pelo menos 80%.
-4. **Banco reproduzível:** criar migrations e dados iniciais versionados; validar FKs, índices, horários, orphanRemoval e timestamps. O SQL manual de preparo não substitui esse fluxo.
-5. **Docker:** criar Dockerfile, .dockerignore e Compose com aplicação/MySQL, volume, variáveis e healthcheck; validar inicialização do zero e documentar os comandos.
-6. **Postman ponta a ponta:** executar as 51 requisições, respeitando o login ignorado por padrão, contra a API com MySQL e depois contra Compose; conferir captura de tokens/IDs, cenários negativos e limpeza.
-7. **Entrega e repositório:** completar integrantes e links finais do README, revisar arquivos/segredos, preparar commits somente quando solicitados, confirmar repositório público e validar um clone limpo.
-8. **Vídeo:** preparar roteiro, gravar aproximadamente cinco minutos demonstrando arquitetura, execução, CRUDs, erros, testes e cobertura; incluir o link na entrega.
-
-### Autenticação — validação reservada ao usuário
-
-- Login implementado e corrigido pelo usuário. A leitura confirmou a busca do UserType associado e o preenchimento dos campos corretos. Os testes de AuthUseCase e componentes associados ficam com o usuário. Os rótulos antigos de login pendente no Swagger/Postman ainda precisam ser atualizados após essa validação.
-
-### Decisão e melhoria separadas da entrega principal
-
-- Refatoração opcional: extrair mappers HTTP nos demais controllers; o cardápio já utiliza MenuItemResponseMapper.
+Os resultados e nomes de classes nas seções históricas abaixo descrevem etapas anteriores. O resumo desta seção é o estado atual.
 
 ## Status dos entregáveis obrigatórios
 
 | Entregável | Status | Principal pendência |
 | --- | --- | --- |
-| Funcionalidades | Quase concluído | Login implementado pelo usuário; validação de autenticação com o usuário |
-| Qualidade do código | Parcial | Medir cobertura, completar cenários faltantes e validar no MySQL; mappers HTTP são melhoria opcional |
+| Funcionalidades | Quase concluído | Registro, login e consulta autenticada validados; resta validar o ambiente MySQL/Compose |
+| Qualidade do código | Parcial | Suíte completa e cobertura aprovadas; validar no MySQL e manter cobertura nas próximas alterações |
 | Documentação | Parcial | README e Swagger disponíveis; informar integrantes e links finais |
-| Collection | Criada; execução com banco pendente | 51 requisições; schema e scripts validados; falta executar contra API/MySQL |
+| Collection | Criada; execução com banco pendente | 53 requisições com login ativo; schema e scripts validados; falta executar contra API/MySQL |
 | Docker Compose | Ausente | Criar Dockerfile e Compose para aplicação e MySQL |
 | Repositório aberto | Não confirmado | Publicar e validar um clone limpo |
 | Clean Architecture | Implementado | Revisar dependências e manter as fronteiras entre camadas |
-| Testes e cobertura de 80% | Parcial | 114 testes de negócio passam com H2; faltam medir cobertura/JaCoCo e validar MySQL |
+| Testes e cobertura de 80% | Parcial | 174 testes aprovados; 92,45% de linhas; JaCoCo verifica mínimo de 80% em verify |
 | Vídeo | Ausente | Gravar demonstração de aproximadamente cinco minutos |
 
 ## Funcionalidades
@@ -169,7 +159,7 @@ README, Swagger e arquivos do Postman já foram criados. A compilação passou. 
 
 - [x] Remover a dependência do header X-User-Id.
 
-- [ ] Validar o login implementado pelo usuário; testes de autenticação ficam com ele.
+- [x] Validar cadastro, login, usuário autenticado, BCrypt e JWT com testes unitários, HTTP e integração H2.
 
 - [x] Implementar findAuthenticatedUser.
 
@@ -215,7 +205,7 @@ A seleção não executou AuthServiceTest, HttpSecurityTests e OpenApiIntegratio
 
 ## Testes e cobertura
 
-- [ ] Adicionar JaCoCo com regra mínima de 80%.
+- [x] Configurar JaCoCo e aprovar a regra mínima de 80% de linhas (resultado: 92,45%).
 
 - [x] Criar application-test.properties com H2 em memória.
 
@@ -229,7 +219,7 @@ A seleção não executou AuthServiceTest, HttpSecurityTests e OpenApiIntegratio
 
 - [x] Testar MenuItemService.
 
-- [x] Preservar os três casos existentes em services/AuthServiceTest; revisão e testes adicionais de autenticação ficam com o usuário.
+- [x] Preservar os testes do usuário e completar AuthServiceTest com cenários de registro, login e consulta autenticada.
 
 - [x] Testar os mappers de tipos, endereço, restaurante, item e horários nas duas direções; mapper de User fica separado dos testes gerados nesta rodada.
 
@@ -247,7 +237,7 @@ A seleção não executou AuthServiceTest, HttpSecurityTests e OpenApiIntegratio
 
 - [x] Usar baseUrl, accessToken, userId, userTypeId, restaurantId e menuItemId.
 
-- [ ] Atualizar o rótulo e habilitar o login na collection após os testes de autenticação do usuário; validar captura do token e cenários negativos.
+- [x] Habilitar login na collection, capturar JWT e incluir cenários de senha incorreta e email inexistente; execução da collection contra API/MySQL permanece pendente.
 
 - [x] Salvar o JWT automaticamente.
 
@@ -401,9 +391,17 @@ Validação direcionada: 10 testes passaram (9 do MenuItemControllerTest e conte
 
 - Login e código de autenticação não foram alterados. Testes de autenticação permanecem com o usuário; revogação de JWT não foi adicionada.
 
+## Suíte completa e cobertura — 27/10/2026
+
+174 testes aprovados com Maven verify. Relatório em target/site/jacoco/index.html; detalhes por teste em target/surefire-reports. O Mockito é carregado por agente explícito configurado no pom.xml; não é necessário passar seu caminho no comando.
+
+Os testes do usuário foram preservados e ampliados. Cobertos cadastro, email em uso, normalização, tipo padrão ausente, falha ao salvar, login correto e incorreto, tipo associado, usuário autenticado, BCrypt, assinatura/emissor/expiração/subject JWT, filtros, integração HTTP com H2 e contratos Swagger. O rótulo de login pendente foi removido; a collection tem 53 requisições e login ativo.
+
+Não houve execução de Postman contra MySQL/Compose nesta rodada. Não foram criadas migrations nem Docker. Nenhum commit foi criado nesta etapa.
+
 ## Próxima etapa recomendada
 
-Medir a cobertura com JaCoCo, validar no MySQL real, tornar a execução reproduzível e executar a collection ponta a ponta. O banco isolado de testes já está pronto. A validação dos componentes de autenticação fica com o usuário.
+Tornar o banco reproduzível com migrations e Compose e executar a collection contra MySQL. A suíte completa, a autenticação e a cobertura mínima já foram validadas com o banco isolado.
 
 ## Critério de pronto
 
@@ -411,7 +409,7 @@ Medir a cobertura com JaCoCo, validar no MySQL real, tornar a execução reprodu
 
 - [x] O projeto compila com sucesso.
 
-- [ ] Login e autenticação funcionam com JWT.
+- [x] Cadastro, login e consulta autenticada validados com JWT real e H2.
 
 - [ ] Docker Compose inicia aplicação e banco do zero.
 
@@ -419,9 +417,9 @@ Medir a cobertura com JaCoCo, validar no MySQL real, tornar a execução reprodu
 
 - [x] Compilação aprovada e 114 testes de negócio aprovados com H2, organizados por camada e recurso.
 
-- [ ] Executar a suíte completa após a validação de autenticação pelo usuário.
+- [x] Executar toda a suíte: 174 testes aprovados, sem falhas ou erros.
 
-- [ ] JaCoCo comprova pelo menos 80% de cobertura.
+- [x] JaCoCo comprova pelo menos 80% de linhas: 92,45% aprovado em verify.
 
 - [ ] O README permite executar o projeto sem ajuda externa.
 

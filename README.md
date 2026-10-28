@@ -2,7 +2,7 @@
 
 API REST desenvolvida para o Tech Challenge da pós-graduação em Java da FIAP. Permite cadastrar e gerenciar usuários, tipos de usuário, restaurantes e itens de cardápio, com autenticação JWT e autorização por proprietário.
 
-**Estado atual:** CRUDs e consulta do usuário autenticado implementados. O cadastro retorna um token JWT. O login foi implementado pelo usuário e revisado por leitura; os testes de autenticação ficam com ele. O profile de testes usa H2 isolado. Docker e migrations permanecem pendentes.
+**Estado atual:** CRUDs e consulta do usuário autenticado implementados. O cadastro retorna um token JWT. O login foi implementado pelo usuário e validado com testes unitários, HTTP e integração com banco H2, BCrypt e JWT reais. O profile de testes usa H2 isolado. Docker e migrations permanecem pendentes.
 
 ## Tecnologias
 
@@ -171,7 +171,7 @@ A documentação é pública; as rotas de negócio mantêm suas regras de autent
 4. Consulte GET /user-types, identifique o ID de RESTAURANT_OWNER e altere o próprio tipo com PUT /users/{userId}/user-type.
 5. Crie restaurantes e itens do cardápio.
 
-A especificação descreve os bodies, a paginação, os status e os erros ProblemDetail. O rótulo pendente/deprecated do login ainda deve ser atualizado após a validação dos componentes de autenticação pelo usuário.
+A especificação descreve os bodies, a paginação, os status e os erros ProblemDetail. O login está documentado como funcional e inclui a resposta 401 para credenciais inválidas.
 
 ## Autenticação
 
@@ -201,7 +201,10 @@ Authorization: Bearer <accessToken>
 
 O JWT usa o ID do usuário no subject. O ID autenticado não é recebido por X-User-Id. O token precisa ter assinatura, emissor, validade e subject numérico positivo válidos. As regras de tipo consultam o banco, portanto a alteração do próprio tipo é reconhecida mesmo com o token de cadastro.
 
-**Login implementado pelo usuário.** A leitura confirmou normalização do email, comparação da senha e busca do tipo associado para compor a resposta e o token. A execução dos testes de AuthUseCase e associados fica com o usuário. Swagger e a pasta 90 do Postman ainda mantêm os rótulos anteriores e devem ser atualizados após essa validação.
+**Login implementado e testado.** Normaliza o email, compara a senha com o hash
+armazenado e consulta o tipo atual para gerar o JWT e a resposta. Cadastro, login,
+consulta autenticada, credenciais inválidas e atualização do tipo foram validados
+em testes de integração com H2, BCrypt e JWT reais.
 
 ## Endpoints
 
@@ -210,7 +213,7 @@ Exceto registro, login e documentação, todas as rotas exigem Bearer JWT.
 | Método | Rota | Sucesso | Regra principal |
 | --- | --- | --- | --- |
 | POST | /auth/register | 201 | Cria CUSTOMER e emite JWT |
-| POST | /auth/login | 200 | Implementado pelo usuário; testes de autenticação reservados a ele |
+| POST | /auth/login | 200 | Credenciais válidas emitem JWT; email ou senha inválidos retornam 401 |
 | GET | /auth/me | 200 | Usuário e tipo atuais |
 | GET | /user-types | 200 | Lista paginada |
 | GET | /user-types/{userTypeId} | 200 | Consulta por ID |
@@ -385,118 +388,75 @@ Os arquivos estão separados em [postman/](postman/README.md):
 
 Importe a collection e o environment, selecione **Data Guardian — Local** e execute as pastas 00 a 07 em ordem. O fluxo cadastra dois usuários, captura tokens e IDs, testa os CRUDs e cenários negativos e remove itens, restaurantes, tipo temporário e as duas contas criadas. A exclusão de conta ocorre somente após remover seus restaurantes.
 
-A pasta 90 contém o contrato de login, ignorado por padrão. Os detalhes de execução e as variáveis estão no README da pasta.
+O login faz parte da preparação, captura o JWT e possui cenários negativos de email inexistente e senha incorreta. Os detalhes de execução e as variáveis estão no README da pasta.
 
-## Testes e validação
+## Testes e cobertura
 
-O profile test usa H2 em memória em modo MySQL, com schema recriado para testes.
-O contextLoads e os testes de persistência ativam esse profile explicitamente.
-Não é necessário acessar o MySQL local para esses testes. A dependência H2 tem
-escopo test e não altera o banco da aplicação em execução normal.
+Os testes estão organizados por camada e recurso em src/test/java/com/api_application/phase_2_data_guardian:
 
-Para executar os testes novos e o smoke test, sem os componentes de autenticação:
+| Pasta | Responsabilidade |
+| --- | --- |
+| services | Regras e casos de uso de Auth, User, UserType, Restaurant e MenuItem |
+| controllers | Contratos HTTP, validação, status e respostas sem senha/hash |
+| mappers | Conversão entre domínio e persistência |
+| integration | Fluxos reais com H2; registro/login/JWT; persistência; Swagger |
+| security | BCrypt, emissão/validação JWT e cadeia de segurança |
+| support | Preparação compartilhada dos testes de persistência |
 
-~~~powershell
-.\mvnw.cmd "-Dtest=RestaurantServiceTest,MenuItemServiceTest,UserServiceTest,UserTypeServiceTest,*PersistenceMapperTest,*ControllerTest,*PersistenceIntegrationTest,Phase2DataGuardianApplicationTests" test
-~~~
-
-A execução de toda a suíte continua disponível com .\mvnw.cmd test. Isso inclui
-os testes de autenticação e segurança já existentes, cuja revisão/expansão foi
-reservada ao usuário. Nenhum teste novo de AuthUseCase, login, JWT ou password
-hasher foi criado nesta rodada.
-
-No ambiente desta sessão, Mockito precisou ser carregado por agente explícito:
+### Executar toda a suíte
 
 ~~~powershell
-.\mvnw.cmd "-DargLine=-javaagent:C:/Users/guide/.m2/repository/org/mockito/mockito-core/5.23.0/mockito-core-5.23.0.jar" "-Dtest=RestaurantServiceTest,MenuItemServiceTest,UserServiceTest,UserTypeServiceTest,*PersistenceMapperTest,*ControllerTest,*PersistenceIntegrationTest,Phase2DataGuardianApplicationTests" test
+.\mvnw.cmd clean verify
 ~~~
 
-Ajuste o caminho ao seu repositório local. O argumento de agente não é necessário
-quando a autoanexação do Mockito funciona no ambiente.
+No Linux/macOS, use ./mvnw clean verify. É necessário JAVA_HOME válido e acesso ao
+Maven Central na primeira execução. O profile test usa H2 em memória em modo MySQL
+e os testes que precisam dele o ativam explicitamente; não usam o MySQL local.
 
+O comando verify executa os testes, gera o JAR e verifica o mínimo de **80% de
+cobertura de linhas** sobre o conjunto completo das classes de produção, sem
+exclusões configuradas. O comando .\mvnw.cmd test executa a suíte e gera os
+relatórios, mas o limite mínimo é verificado na fase verify.
 
-### Organização dos testes
+- Resultado registrado: **174 testes, zero falhas, zero erros e zero ignorados**.
+- Cobertura de linhas: **92,45%** (1053 de 1139).
+- Cobertura de decisões: **90,00%** (144 de 160).
+- Cobertura de instruções: **94,21%** (4363 de 4631).
+- Relatório visual: target/site/jacoco/index.html.
+- Relatórios por teste: target/surefire-reports/.
+- Relatórios de cobertura para ferramentas: target/site/jacoco/jacoco.xml e jacoco.csv.
 
-Na pasta src/test/java/com/api_application/phase_2_data_guardian:
+O Maven configura explicitamente o agente do Mockito junto ao JaCoCo. Não é mais
+necessário informar o caminho do Mockito em -DargLine para executar a suíte.
+Ao executar testes diretamente pela IDE, a configuração de agentes é a da IDE.
 
-~~~text
-services/
-  RestaurantServiceTest.java
-  MenuItemServiceTest.java
-  UserTypeServiceTest.java
-  UserServiceTest.java
-  AuthServiceTest.java
-mappers/
-  AddressPersistenceMapperTest.java
-  OpeningHoursPersistenceMapperTest.java
-  RestaurantPersistenceMapperTest.java
-  MenuItemPersistenceMapperTest.java
-  UserTypePersistenceMapperTest.java
-controllers/
-  RestaurantControllerTest.java
-  MenuItemControllerTest.java
-  UserTypeControllerTest.java
-  UserControllerTest.java
-integration/
-  RestaurantPersistenceIntegrationTest.java
-  MenuItemPersistenceIntegrationTest.java
-  UserTypePersistenceIntegrationTest.java
-  UserPersistenceIntegrationTest.java
-  OpenApiIntegrationTests.java
-security/
-  HttpSecurityTests.java
-support/
-  PersistenceIntegrationSupport.java
-Phase2DataGuardianApplicationTests.java
-~~~
+Os testes escritos pelo usuário em AuthServiceTest foram preservados. Foi
+corrigido o mock de busca por email no cenário duplicado e adicionados casos de
+normalização, tipo padrão ausente, falha ao salvar, login válido, senha incorreta,
+email inexistente, tipo associado e tipo atualizado. A integração usa os services,
+adapters, banco H2, BCrypt, emissão/validação JWT e filtros reais, sem simular os
+casos de uso nesse fluxo.
 
-Cada arquivo concentra os cenários de um recurso. Os testes de persistência
-compartilham somente a preparação do banco em PersistenceIntegrationSupport;
-os casos e suas asserções ficam nos arquivos de cada recurso.
-Os testes existentes de autenticação apenas mudaram de localização, sem novos
-cenários nem alteração das asserções. Sua revisão continua com o usuário.
+Swagger também é exercitado pela suíte. A collection agora possui **53 requisições**,
+com login ativo e captura de token; schema Postman v2.1, scripts e bodies foram
+validados. A collection não foi executada contra MySQL/Compose nesta rodada.
 
-### Resultado em 27/10/2026
-
-- 57 testes novos: controllers de negócio, persistência, mappers e validações.
-- Após reorganizar por camada/recurso, 86 testes de negócio passaram.
-- Todos os cenários anteriores foram preservados. O caso que combinava paginação
-  de restaurantes e tipos foi separado em dois testes, um para cada recurso.
-- Os três casos já existentes, agora em services/AuthServiceTest.java, e as classes
-  HttpSecurityTests/OpenApiIntegrationTests foram excluídos dessa seleção.
-- O teste de integração encontrou e comprovou a correção da duplicação dos
-  horários ao atualizar restaurante sem alterar os períodos.
-- H2 não substitui uma validação final contra MySQL/Compose.
-- JaCoCo e comprovação de 80% permanecem pendentes.
-- Collection e script SQL de preparo não foram executados contra banco nesta rodada.
-
-### CRUD de usuários — validação mais recente
-
-Acrescentadas listagem, consulta, atualização e exclusão de usuários, com respostas
-HTTP sem senha/hash e regras de acesso ao próprio perfil. A seleção completa dos
-módulos de negócio foi reexecutada: 114 testes aprovados, incluindo 25 novos casos
-de CRUD de usuários, sem falhas ou erros. A compilação Maven passou.
-A collection contém agora 51 requisições, cobrindo as 24 operações da API; schema,
-scripts e bodies foram validados, sem execução ponta a ponta nesta rodada.
-
-Os JWT já emitidos seguem a validação stateless existente até sua expiração.
-A exclusão de conta não implementa revogação de tokens. Os testes de autenticação
-permanecem sob responsabilidade do usuário.
+H2 não comprova equivalência completa ao MySQL real; essa validação permanece pendente.
 
 ## Pendências de entrega
 
 O checklist detalhado está em [docs/PHASE_2_REMAINING_TASKS.html](docs/PHASE_2_REMAINING_TASKS.html).
 
-- Validar o login e os componentes de autenticação (responsabilidade do usuário); atualizar seus rótulos no Swagger/Postman.
+- Executar os fluxos e a collection também contra a aplicação com MySQL real/Compose.
 - Validar os cenários de persistência também contra MySQL real/Compose; H2 e contextLoads já estão configurados e aprovados.
-- Ampliar testes de persistência/mappers/controllers e configurar JaCoCo.
+- Ampliar a cobertura conforme novos requisitos; a suíte atual e o limite JaCoCo de 80% já estão aprovados.
 - Adicionar migrations e dados iniciais reproduzíveis.
 - Criar e validar Dockerfile e Docker Compose.
 - Executar a collection contra a aplicação com banco e, depois, contra o Compose.
 - Confirmar repositório público e execução a partir de clone limpo.
 - Informar integrantes e links finais da entrega; preparar o vídeo.
 
-Não há Docker/Compose, migrations ou evidência de cobertura de 80% incluídos nesta versão.
+Docker/Compose e migrations permanecem pendentes. A comprovação de cobertura está disponível nos relatórios JaCoCo gerados por verify.
 
 ## Referências
 
