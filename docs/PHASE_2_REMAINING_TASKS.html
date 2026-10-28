@@ -1,358 +1,824 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Relatório de Pendências — Tech Challenge Fase 2</title>
-  <style>
-    :root {
-      --ink: #172033;
-      --muted: #64748b;
-      --paper: #ffffff;
-      --canvas: #f4f7fb;
-      --line: #dbe3ef;
-      --primary: #173f73;
-      --accent: #e0672f;
-      --success: #16835f;
-      --warning: #b76a05;
-      --danger: #b93838;
-      --shadow: 0 18px 48px rgba(23, 63, 115, .10);
-    }
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      margin: 0;
-      color: var(--ink);
-      background:
-        radial-gradient(circle at 90% 0%, rgba(224,103,47,.10), transparent 28rem),
-        linear-gradient(180deg, #edf3fa 0, var(--canvas) 22rem);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      line-height: 1.65;
-    }
-    .hero {
-      color: white;
-      padding: 58px 24px 86px;
-      background: linear-gradient(135deg, #102c52 0%, #174c83 70%, #1b618e 100%);
-    }
-    .hero-inner, main { max-width: 1040px; margin: 0 auto; }
-    .eyebrow {
-      margin: 0 0 12px;
-      color: #bdd9f5;
-      font-weight: 800;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      font-size: .78rem;
-    }
-    .hero h1 { margin: 0; max-width: 850px; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.05; }
-    .hero p { max-width: 740px; margin: 18px 0 0; color: #dbeaf8; font-size: 1.06rem; }
-    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 30px; }
-    .metric { padding: 16px 18px; border: 1px solid rgba(255,255,255,.18); border-radius: 14px; background: rgba(255,255,255,.08); }
-    .metric strong { display: block; font-size: 1.6rem; }
-    .metric span { color: #dbeaf8; font-size: .88rem; }
-    main {
-      position: relative;
-      margin-top: -42px;
-      margin-bottom: 70px;
-      padding: 34px clamp(20px, 5vw, 64px) 64px;
-      border: 1px solid rgba(219,227,239,.9);
-      border-radius: 22px;
-      background: var(--paper);
-      box-shadow: var(--shadow);
-    }
-    .toolbar { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 8px; }
-    .toolbar a {
-      color: var(--primary);
-      padding: 8px 12px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      text-decoration: none;
-      font-weight: 700;
-      font-size: .86rem;
-    }
-    h1:first-child { display: none; }
-    h2 { margin: 48px 0 16px; padding-bottom: 10px; border-bottom: 2px solid var(--line); color: var(--primary); font-size: 1.55rem; }
-    h3 { margin: 30px 0 10px; color: #244f78; font-size: 1.17rem; }
-    p { margin: 10px 0 16px; }
-    ul, ol { padding-left: 1.35rem; }
-    li { margin: 7px 0; }
-    code { padding: .15em .42em; color: #973f1a; background: #fff2eb; border-radius: 5px; font-size: .9em; }
-    table { display: block; width: 100%; overflow-x: auto; border-collapse: collapse; margin: 18px 0 28px; }
-    th, td { min-width: 150px; padding: 13px 14px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
-    th { color: white; background: var(--primary); }
-    tr:nth-child(even) td { background: #f8fafc; }
-    input[type="checkbox"] { width: 1.05rem; height: 1.05rem; margin-right: .45rem; accent-color: var(--success); vertical-align: -2px; }
-    blockquote { margin: 18px 0; padding: 12px 18px; border-left: 4px solid var(--accent); background: #fff8f3; }
-    a { color: #175b9c; }
-    hr { margin: 36px 0; border: 0; border-top: 1px solid var(--line); }
-    footer { max-width: 1040px; margin: -42px auto 44px; padding: 0 24px; color: var(--muted); text-align: center; font-size: .88rem; }
-    @media (max-width: 720px) {
-      .metrics { grid-template-columns: 1fr; }
-      .hero { padding-top: 42px; }
-      main { margin-left: 12px; margin-right: 12px; border-radius: 16px; }
-    }
-    @media print {
-      body { background: white; font-size: 10.5pt; }
-      .hero { padding: 24px; background: white; color: var(--ink); border-bottom: 2px solid var(--primary); }
-      .hero p, .eyebrow, .metric span { color: var(--ink); }
-      .metrics { grid-template-columns: repeat(3, 1fr); }
-      .metric { border-color: var(--line); background: white; }
-      main { margin: 0; padding: 18px 0; border: 0; box-shadow: none; max-width: none; }
-      .toolbar, footer { display: none; }
-      h2 { break-after: avoid; }
-      table, ul, ol { break-inside: avoid; }
-    }
-  </style>
-</head>
-<body>
-  <header class="hero">
-    <div class="hero-inner">
-      <p class="eyebrow">FIAP · Tech Challenge · Fase 2</p>
-      <h1>Relatório de pendências e plano de entrega</h1>
-      <p>Auditoria do projeto phase-2-data-guardian, com checklist funcional, técnico e acadêmico para concluir todos os entregáveis.</p>
-      <div class="metrics">
-        <div class="metric"><strong>9</strong><span>entregáveis avaliados</span></div>
-        <div class="metric"><strong>80%</strong><span>cobertura mínima exigida</span></div>
-        <div class="metric"><strong>~5 min</strong><span>duração esperada do vídeo</span></div>
-      </div>
-    </div>
-  </header>
-  <main>
-    <div class="toolbar">
-      <a href="PHASE_2_REMAINING_TASKS.md">Ver fonte Markdown</a>
-      <a href="javascript:window.print()">Imprimir / salvar PDF</a>
-    </div>
-    <h1 id="relatorio-de-pendencias-tech-challenge-fase-2">Relatório de pendências — Tech Challenge Fase 2</h1>
-<p>Projeto auditado: C:\projects\Java\fiap\phase-2-data-guardian<br />
-Data da auditoria: 26/10/2026</p>
-<h2 id="resumo">Resumo</h2>
-<p>O projeto possui entidades de domínio/JPA, DTOs, repositórios, adapters, mappers, erros customizados e parte do módulo de cardápio. Ainda não está pronto para entrega: faltam funcionalidades obrigatórias, banco reproduzível, Docker, testes, documentação, collection, repositório público confirmado e vídeo.</p>
-<h2 id="status-dos-entregaveis-obrigatorios">Status dos entregáveis obrigatórios</h2>
-<table>
-<thead>
-<tr>
-<th>Entregável</th>
-<th>Status</th>
-<th>Principal pendência</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Funcionalidades</td>
-<td>Parcial</td>
-<td>User type, associação e restaurante retornam 501; menu update/delete incompletos</td>
-</tr>
-<tr>
-<td>Qualidade</td>
-<td>Parcial</td>
-<td>Corrigir inconsistências, duplicação e validar build</td>
-</tr>
-<tr>
-<td>Documentação</td>
-<td>Ausente</td>
-<td>Criar README completo</td>
-</tr>
-<tr>
-<td>Collection</td>
-<td>Ausente</td>
-<td>Criar e testar Postman/Insomnia/Bruno</td>
-</tr>
-<tr>
-<td>Docker Compose</td>
-<td>Ausente</td>
-<td>Criar Dockerfile, Compose e healthcheck</td>
-</tr>
-<tr>
-<td>Repositório aberto</td>
-<td>Não confirmado</td>
-<td>Publicar e testar clone limpo</td>
-</tr>
-<tr>
-<td>Clean Architecture</td>
-<td>Parcial</td>
-<td>Só MenuItem possui use case/service</td>
-</tr>
-<tr>
-<td>Testes 80%</td>
-<td>Ausente</td>
-<td>Apenas contextLoads; falta JaCoCo</td>
-</tr>
-<tr>
-<td>Vídeo</td>
-<td>Ausente</td>
-<td>Gravar aproximadamente cinco minutos</td>
-</tr>
-</tbody>
-</table>
-<h2 id="funcionalidades">Funcionalidades</h2>
-<h3 id="tipos-de-usuario">Tipos de usuário</h3>
-<ul class="contains-task-list">
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar UserTypeUseCase, UserTypeService e bean de configuração.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Implementar POST, GET paginado, GET por ID, PUT e DELETE.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Impedir nomes duplicados ignorando maiúsculas/minúsculas.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Retornar 409 ao excluir tipo associado a usuários.</li>
-</ul>
-<h3 id="associacao-usuariotipo">Associação usuário/tipo</h3>
-<ul class="contains-task-list">
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar caso de uso e serviço.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Implementar PUT /users//user-type.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Implementar GET /users//user-type.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Validar existência de usuário e tipo.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Confirmar se o CRUD da Fase 1 precisa permanecer nesta entrega.</li>
-</ul>
-<h3 id="restaurantes">Restaurantes</h3>
-<ul class="contains-task-list">
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar RestaurantUseCase, RestaurantService e bean.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Implementar CRUD completo e listagem paginada.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Validar existência e tipo do proprietário.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Validar horários inválidos e períodos sobrepostos.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Definir exclusão de restaurante com itens associados.</li>
-</ul>
-<h3 id="itens-do-cardapio">Itens do cardápio</h3>
-<ul class="contains-task-list">
-<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> Criar item.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> Listar por restaurante com paginação.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> Consultar por ID, ainda sem validar o restaurante da URL.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Corrigir update: userId não está declarado e menuItemId não é atribuído.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Implementar delete; ainda retorna 501.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Buscar por menuItemId e restaurantId juntos em consulta/update/delete.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Receber X-User-Id em update/delete enquanto não houver autenticação.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Extrair toResponse ou mapper HTTP.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Remover findAll global se não for usado.</li>
-</ul>
-<h3 id="contrato-http">Contrato HTTP</h3>
-<ul class="contains-task-list">
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Aplicar /api/v1 se essa continuar sendo a decisão.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Padronizar 201 criação, 200 leitura/update e 204 delete.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Manter IDs dos recursos nas respostas.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Padronizar 400, 403, 404 e 409.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Escolher ProblemDetail ou ApiErrorResponse; hoje ambos coexistem.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Documentar page, size, sort e página inicial zero.</li>
-</ul>
-<h2 id="banco-de-dados">Banco de dados</h2>
-<ul class="contains-task-list">
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Configurar conexão por variáveis de ambiente.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar configurações local, teste e Docker.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Definir estratégia de schema do Hibernate.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Preferencialmente adicionar Flyway e migrations.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar FKs, índices e constraints.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar dados iniciais de Restaurant Owner e Customer, se necessário.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Confirmar preço em centavos com Long.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Testar horários, orphanRemoval e timestamps.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Não versionar credenciais.</li>
-</ul>
-<p>Migrations não são exigidas literalmente, mas tornam o banco reproduzível e melhoram a qualidade.</p>
-<h2 id="seguranca">Segurança</h2>
-<ul class="contains-task-list">
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Decidir se autenticação faz parte desta fase.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Se não fizer, simplificar a configuração incompleta e documentar X-User-Id.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Se fizer, obter usuário do contexto de segurança, não de header manipulável.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Completar authorizeHttpRequests e testar autorização.</li>
-</ul>
-<p>Autenticação não aparece como requisito explícito. Ela não deve bloquear os CRUDs obrigatórios.</p>
-<h2 id="docker">Docker</h2>
-<ul class="contains-task-list">
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar Dockerfile multi-stage e .dockerignore.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar docker-compose.yml com aplicação e MySQL.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Usar variáveis de ambiente para credenciais.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Adicionar volume e healthcheck.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Aguardar o banco saudável.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Validar docker compose up --build em ambiente limpo.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Documentar subida, logs e encerramento.</li>
-</ul>
-<h2 id="testes-e-cobertura">Testes e cobertura</h2>
-<ul class="contains-task-list">
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Adicionar JaCoCo e regra mínima de 80%.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar profile/banco de testes.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Considerar Testcontainers com MySQL.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Testar todos os services e regras de negócio.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Testar todos os mappers nas duas direções.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Testar controllers com MockMvc e validações.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Testar paginação e ordenação.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Testar repositórios JPA e relacionamentos.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar integrações controller → use case → adapter → banco.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Cobrir 201, 200, 204, 400, 403, 404 e 409.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Manter contextLoads, sem tratá-lo como cobertura suficiente.</li>
-</ul>
-<h2 id="collection-postman-ou-similar">Collection Postman ou similar</h2>
-<ul class="contains-task-list">
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Versionar collection e environment.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Usar variáveis baseUrl, userId, userTypeId, restaurantId e menuItemId.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Cobrir todos os CRUDs, associação, paginação e ordenação.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Salvar IDs automaticamente.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Validar status e campos.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Incluir cenários negativos.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Executar tudo contra o Docker Compose.</li>
-</ul>
-<h2 id="documentacao">Documentação</h2>
-<ul class="contains-task-list">
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Criar README próprio; HELP.md é apenas do Spring Initializr.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Explicar problema, escopo, tecnologias e versões.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Explicar camadas e estrutura.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Adicionar diagramas de arquitetura e dados.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Documentar endpoints, headers, bodies, respostas e status.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Documentar paginação, variáveis, execução local/Docker e testes.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Informar collection, integrantes e links.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Registrar decisões: Long, centavos e autenticação.</li>
-</ul>
-<p>Swagger/OpenAPI não é obrigatório. README e collection podem cumprir a documentação da API.</p>
-<h2 id="repositorio">Repositório</h2>
-<ul class="contains-task-list">
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Publicar/confirmar GitHub ou GitLab público.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Confirmar clone em outra pasta.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Ignorar .idea, target, segredos e arquivos locais.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Organizar commits.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Versionar README, Docker, collection, migrations e testes.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Executar tudo a partir de clone limpo.</li>
-</ul>
-<h2 id="video-de-aproximadamente-cinco-minutos">Vídeo de aproximadamente cinco minutos</h2>
-<ol>
-<li>0:00–0:30 — problema, integrantes e objetivo.</li>
-<li>0:30–1:10 — arquitetura e camadas.</li>
-<li>1:10–1:40 — Docker Compose.</li>
-<li>1:40–3:50 — CRUDs de tipos, associação, restaurante e cardápio.</li>
-<li>3:50–4:20 — validação e erro 403/404.</li>
-<li>4:20–4:45 — testes e cobertura ≥ 80%.</li>
-<li>4:45–5:00 — README, collection e repositório.</li>
-</ol>
-<ul class="contains-task-list">
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Ensaiar, garantir legibilidade e não mostrar credenciais.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Adicionar link do vídeo à entrega.</li>
-</ul>
-<h2 id="problemas-encontrados-no-codigo">Problemas encontrados no código</h2>
-<ol>
-<li>UserTypeController, UserController e RestaurantController retornam 501.</li>
-<li>MenuItemController.delete retorna 501.</li>
-<li>MenuItemController.update usa userId sem declará-lo.</li>
-<li>Update não atribui menuItemId; o service busca ID nulo.</li>
-<li>FindById de menu ignora restaurantId.</li>
-<li>Há findAll global de menu aparentemente sem uso.</li>
-<li>Só existem MenuItemUseCase e MenuItemService.</li>
-<li>application.properties só possui o nome da aplicação.</li>
-<li>Segurança está incompleta.</li>
-<li>Existe apenas contextLoads.</li>
-<li>Não há Docker, collection, migrations ou README próprio.</li>
-<li>ProblemDetail e ApiErrorResponse coexistem.</li>
-</ol>
-<h2 id="ordem-recomendada">Ordem recomendada</h2>
-<ol>
-<li>Fazer compilar/executar: corrigir menu, banco e segurança provisória.</li>
-<li>Concluir funcionalidades: tipos, associação, restaurantes e cardápio.</li>
-<li>Tornar reproduzível: migrations, Docker e dados de demonstração.</li>
-<li>Garantir qualidade: testes unitários/integrados e JaCoCo ≥ 80%.</li>
-<li>Produzir entrega: README, collection, repositório e vídeo.</li>
-</ol>
-<h2 id="criterio-de-pronto">Critério de pronto</h2>
-<ul class="contains-task-list">
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Nenhum endpoint obrigatório retorna 501.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Docker Compose inicia aplicação e banco do zero.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Collection executa o fluxo completo.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Testes passam e JaCoCo comprova pelo menos 80%.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> README permite execução sem ajuda.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Repositório está público e sem segredos.</li>
-<li class="task-list-item"><input disabled="disabled" type="checkbox" /> Vídeo demonstra funcionalidades, arquitetura, Docker e testes.</li>
-</ul>
+<main>
+  <div class="toolbar">
+    <a href="PHASE_2_REMAINING_TASKS.md">Ver fonte Markdown</a>
+    <a href="javascript:window.print()">Imprimir / salvar PDF</a>
+  </div>
 
-  </main>
-  <footer>Relatório gerado em 26/10/2026 · phase-2-data-guardian</footer>
-</body>
-</html>
+  <h1>Relatório de pendências — Tech Challenge Fase 2</h1>
+
+  <p>
+    Projeto auditado:
+    <code>C:\projects\Java\fiap\phase-2-data-guardian</code><br>
+    Última atualização: 27/10/2026
+  </p>
+
+  <h2>Resumo atual</h2>
+
+  <p>
+    Os CRUDs obrigatórios de tipos de usuário, associação de usuários,
+    restaurantes e itens de cardápio já possuem controllers, casos de uso,
+    services, repositories, adapters e mappers.
+  </p>
+
+  <p>
+    As listagens utilizam <code>Page</code> e <code>Pageable</code>. A aplicação
+    compila com sucesso. A autenticação JWT está parcialmente implementada:
+    emissão e validação do token foram estruturadas, a consulta completa do usuário autenticado foi concluída. O login foi implementado pelo usuário; sua validação fica sob responsabilidade dele.
+  </p>
+
+  <p>
+    O projeto ainda não está pronto para entrega. As principais pendências são:
+    migrations e dados iniciais reproduzíveis, Docker Compose, testes automatizados com
+    cobertura mínima de 80%, execução ponta a ponta da collection,
+    repositório público confirmado e vídeo.
+  </p>
+
+
+  <h2>O que falta — ordem de prioridade</h2>
+  <p>README, Swagger e arquivos do Postman já foram criados. A compilação passou.
+    Validação mais recente: 114 testes dos módulos de negócio passaram após o CRUD de usuários, incluindo
+    contextLoads com H2 isolado. Os 57 testes acrescentados anteriormente foram reorganizados por camada/recurso; um caso misto foi dividido em dois, preservando todas as asserções. Os testes ligados
+    a AuthUseCase, login e segurança não foram criados nem executados nesta rodada;
+    ficam com o usuário, conforme combinado.</p>
+  <ol>
+    <li><strong>Banco local:</strong> configurar credenciais válidas para o MySQL e confirmar que a aplicação inicia. Executar postman/setup-user-types.sql no banco correto; o script existe, mas não foi executado nesta sessão.</li>
+    <li><strong>Validação MySQL:</strong> o profile test com H2 em memória foi criado e contextLoads passou. Ainda é necessário validar os cenários contra MySQL real/Compose; H2 não comprova equivalência completa ao MySQL.</li>
+    <li><strong>Cobertura:</strong> testes de negócio, controllers, mappers, repositories, FKs, relacionamentos e paginação foram ampliados e passaram com H2. Adicionar JaCoCo, medir a cobertura e completar os cenários faltantes até pelo menos 80%.</li>
+    <li><strong>Banco reproduzível:</strong> criar migrations e dados iniciais versionados; validar FKs, índices, horários, orphanRemoval e timestamps. O SQL manual de preparo não substitui esse fluxo.</li>
+    <li><strong>Docker:</strong> criar Dockerfile, .dockerignore e Compose com aplicação/MySQL, volume, variáveis e healthcheck; validar inicialização do zero e documentar os comandos.</li>
+    <li><strong>Postman ponta a ponta:</strong> executar as 51 requisições, respeitando o login ignorado por padrão, contra a API com MySQL e depois contra Compose; conferir captura de tokens/IDs, cenários negativos e limpeza.</li>
+    <li><strong>Entrega e repositório:</strong> completar integrantes e links finais do README, revisar arquivos/segredos, preparar commits somente quando solicitados, confirmar repositório público e validar um clone limpo.</li>
+    <li><strong>Vídeo:</strong> preparar roteiro, gravar aproximadamente cinco minutos demonstrando arquitetura, execução, CRUDs, erros, testes e cobertura; incluir o link na entrega.</li>
+  </ol>
+  <h3>Autenticação — validação reservada ao usuário</h3>
+  <ul><li>Login implementado e corrigido pelo usuário. A leitura confirmou a busca do UserType associado e o preenchimento dos campos corretos. Os testes de AuthUseCase e componentes associados ficam com o usuário. Os rótulos antigos de login pendente no Swagger/Postman ainda precisam ser atualizados após essa validação.</li></ul>
+  <h3>Decisão e melhoria separadas da entrega principal</h3>
+  <ul>
+
+    <li>Refatoração opcional: extrair mappers HTTP nos demais controllers; o cardápio já utiliza MenuItemResponseMapper.</li>
+  </ul>
+
+  <h2>Status dos entregáveis obrigatórios</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Entregável</th>
+        <th>Status</th>
+        <th>Principal pendência</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Funcionalidades</td>
+        <td>Quase concluído</td>
+        <td>Login implementado pelo usuário; validação de autenticação com o usuário</td>
+      </tr>
+      <tr>
+        <td>Qualidade do código</td>
+        <td>Parcial</td>
+        <td>Medir cobertura, completar cenários faltantes e validar no MySQL; mappers HTTP são melhoria opcional</td>
+      </tr>
+      <tr>
+        <td>Documentação</td>
+        <td>Parcial</td>
+        <td>README e Swagger disponíveis; informar integrantes e links finais</td>
+      </tr>
+      <tr>
+        <td>Collection</td>
+        <td>Criada; execução com banco pendente</td>
+        <td>51 requisições; schema e scripts validados; falta executar contra API/MySQL</td>
+      </tr>
+      <tr>
+        <td>Docker Compose</td>
+        <td>Ausente</td>
+        <td>Criar Dockerfile e Compose para aplicação e MySQL</td>
+      </tr>
+      <tr>
+        <td>Repositório aberto</td>
+        <td>Não confirmado</td>
+        <td>Publicar e validar um clone limpo</td>
+      </tr>
+      <tr>
+        <td>Clean Architecture</td>
+        <td>Implementado</td>
+        <td>Revisar dependências e manter as fronteiras entre camadas</td>
+      </tr>
+      <tr>
+        <td>Testes e cobertura de 80%</td>
+        <td>Parcial</td>
+        <td>114 testes de negócio passam com H2; faltam medir cobertura/JaCoCo e validar MySQL</td>
+      </tr>
+      <tr>
+        <td>Vídeo</td>
+        <td>Ausente</td>
+        <td>Gravar demonstração de aproximadamente cinco minutos</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Funcionalidades</h2>
+
+  <h3>Tipos de usuário</h3>
+
+  <ul class="contains-task-list">
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Criar UserTypeUseCase, UserTypeService e configuração do bean.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Implementar POST, GET paginado, GET por ID, PUT e DELETE.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Impedir nomes duplicados ignorando maiúsculas e minúsculas.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Retornar 409 ao excluir um tipo associado a usuários.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Definir quais tipos podem criar, atualizar ou excluir outros tipos.
+    </li>
+  </ul>
+
+  <h3>Associação usuário/tipo</h3>
+
+  <ul class="contains-task-list">
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Criar UserUseCase e UserService.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Implementar PUT /users/{userId}/user-type.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Implementar GET /users/{userId}/user-type.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Validar a existência do usuário e do tipo.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Restringir quem pode alterar o tipo de outro usuário.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Implementar CRUD completo de usuários: cadastro existente, listagem paginada, consulta, atualização e exclusão.
+    </li>
+  </ul>
+
+  <h3>Restaurantes</h3>
+
+  <ul class="contains-task-list">
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Criar RestaurantUseCase, RestaurantService e configuração do bean.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Implementar CRUD completo.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Implementar listagem com Page e Pageable.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Obter o proprietário pelo subject do JWT.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Impedir atualização e exclusão por usuários que não sejam proprietários.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Validar se o proprietário possui o tipo RESTAURANT_OWNER.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Validar horários inválidos e períodos sobrepostos.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Definir a exclusão de restaurantes que possuem itens associados.
+    </li>
+  </ul>
+
+  <h3>Itens do cardápio</h3>
+
+  <ul class="contains-task-list">
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Criar item.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Listar por restaurante com Page e Pageable.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Consultar item por ID.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Atualizar item utilizando o menuItemId da URL.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Excluir item.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Verificar se o usuário autenticado é proprietário do restaurante.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Buscar pelo menuItemId e restaurantId juntos.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Garantir que o item consultado pertence ao restaurantId da URL.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Extrair os mapeamentos de resposta do cardápio para infra/http/mapper/MenuItemResponseMapper.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Remover o findAll global caso ele não seja necessário.
+    </li>
+  </ul>
+
+  <h3>Contrato HTTP</h3>
+
+  <ul class="contains-task-list">
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Manter as rotas atuais sem prefixo /api/v1, conforme decisão documentada.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Retornar 201 e Location nas criações.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Retornar 200 nas consultas e atualizações.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Retornar 204 nas exclusões.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Manter IDs dos recursos nas respostas.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Validar e padronizar 400, 401, 403, 404 e 409.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Escolher entre ProblemDetail e ApiErrorResponse.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Documentar page, size, sort e que a primeira página é zero.
+    </li>
+  </ul>
+
+  <h2>Banco de dados</h2>
+
+  <ul class="contains-task-list">
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Configurar conexão por variáveis de ambiente.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Criar .env.example sem credenciais reais.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Manter .env fora do Git.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Armazenar preços em centavos utilizando Long.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Criar profile test com H2 em memória, isolado do MySQL de desenvolvimento.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Criar configuração específica para Docker.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Adicionar Flyway e migrations.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Revisar FKs, índices e constraints.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Criar migrations/dados iniciais automáticos de CUSTOMER e RESTAURANT_OWNER; o script SQL manual já existe.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Ampliar testes de atualização de timestamps e repetir a validação dos relacionamentos no MySQL; horários, órfãos e timestamps de criação já foram validados em H2.
+    </li>
+  </ul>
+
+  <blockquote>
+    O Hibernate está configurado com
+    <code>spring.jpa.hibernate.ddl-auto=${JPA_DDL_AUTO:update}</code>.
+    Isso ajuda no desenvolvimento, mas migrations são mais seguras e
+    reproduzíveis para a entrega.
+  </blockquote>
+
+  <h2>Segurança e JWT</h2>
+
+  <ul class="contains-task-list">
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Adicionar Spring Security OAuth2 Resource Server.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Configurar JwtEncoder e JwtDecoder.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Gerar JWT com ID no subject.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Adicionar email, user_type_id e user_type como claims.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Obter o ID autenticado por Authentication.getName().
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Remover a dependência do header X-User-Id.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Validar o login implementado pelo usuário; testes de autenticação ficam com ele.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Implementar findAuthenticatedUser.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Testar token válido, expirado, ausente e inválido.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Criar regras de autorização por tipo de usuário.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Revisar se o SecurityFilter vazio ainda é necessário.
+    </li>
+  </ul>
+
+  <h2>Compilação e execução</h2>
+
+  <ul class="contains-task-list">
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Corrigir a permissão de escrita do Maven em .m2/repository.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Executar mvnw compile com sucesso.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Compilar os 99 arquivos Java atuais.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Executar contextLoads com H2 isolado (passou).
+    </li>
+  </ul>
+
+  <p>
+    O erro de <code>.m2</code> foi resolvido. Ele era causado pela falta de
+    permissão de escrita do processo no cache local do Maven, e não por um
+    problema no código.
+  </p>
+
+  <p>Última validação registrada em 27/10/2026: compilação Maven aprovada,
+    99 fontes principais e 114 testes dos módulos de negócio executados sem
+    falhas ou erros. contextLoads passou com profile test e H2 isolado.
+    A execução contra MySQL real e a medição de cobertura permanecem pendentes.</p>
+  <p>A seleção não executou AuthServiceTest, HttpSecurityTests e OpenApiIntegrationTests.
+    A validação desses componentes permanece com o usuário. O resultado acima não
+    comprova cobertura de 80% nem execução ponta a ponta da collection.</p>
+
+  <h2>Docker</h2>
+
+  <ul class="contains-task-list">
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Criar Dockerfile multi-stage.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Criar .dockerignore.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Criar docker-compose.yml com aplicação e MySQL.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Reutilizar as variáveis DB_HOST, DB_PORT, DB_NAME, DB_USERNAME e DB_PASSWORD.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Adicionar volume persistente para o MySQL.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Adicionar healthcheck do banco.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Fazer a aplicação aguardar o banco ficar saudável.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Validar docker compose up --build em ambiente limpo.
+    </li>
+  </ul>
+
+  <h2>Testes e cobertura</h2>
+
+  <ul class="contains-task-list">
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Adicionar JaCoCo com regra mínima de 80%.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Criar application-test.properties com H2 em memória.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Configurar H2 em modo MySQL e dependência com escopo test.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Testar UserTypeService.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Testar UserService.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Testar RestaurantService.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Testar MenuItemService.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Preservar os três casos existentes em services/AuthServiceTest; revisão e testes adicionais de autenticação ficam com o usuário.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Testar os mappers de tipos, endereço, restaurante, item e horários nas duas direções; mapper de User fica separado dos testes gerados nesta rodada.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Testar controllers de restaurantes, tipos, associação de usuário e cardápio com MockMvc.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Testar paginação e ordenação de tipos, restaurantes e cardápio com persistência H2.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Testar repositories, relacionamentos, FKs e restrições de unicidade com H2.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Cobrir 201, 200, 204, 400, 401, 403, 404 e 409.
+    </li>
+  </ul>
+
+  <h2>Collection Postman ou similar</h2>
+
+  <ul class="contains-task-list">
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Criar collection e environment para versionamento (commit pendente).
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Usar baseUrl, accessToken, userId, userTypeId, restaurantId e menuItemId.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Atualizar o rótulo e habilitar o login na collection após os testes de autenticação do usuário; validar captura do token e cenários negativos.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Salvar o JWT automaticamente.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Cobrir todos os CRUDs e associação de tipo.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Incluir requisições de paginação e ordenação (execução ponta a ponta pendente).
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Incluir cenários negativos.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Executar a collection contra o Docker Compose.
+    </li>
+  </ul>
+
+  <h2>Documentação</h2>
+
+  <ul class="contains-task-list">
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Criar README próprio.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Explicar problema, escopo, tecnologias e versões.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Explicar Domain, Application e Infrastructure.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Documentar arquitetura com diagrama e relacionamentos principais em texto.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Documentar endpoints, bodies, respostas e status.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Documentar JWT e uso do header Authorization.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Documentar paginação, variáveis e execução local; registrar Docker como pendente.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Documentar execução dos testes; registrar JaCoCo/cobertura como pendentes.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Informar integrantes, collection, vídeo e repositório.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Registrar decisões sobre Long, centavos e JWT.
+    </li>
+  </ul>
+
+  <blockquote>
+    Swagger/OpenAPI não é obrigatório pelo enunciado. Um README completo e uma
+    collection testada podem documentar adequadamente a API.
+  </blockquote>
+
+  <h2>Repositório</h2>
+
+  <ul class="contains-task-list">
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Ignorar .idea, target, .env e arquivos locais.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Histórico anterior de commits disponível; alterações desta sessão ainda não foram commitadas.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Publicar ou confirmar GitHub/GitLab público.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Confirmar clone em outra pasta.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Versionar README, Docker, collection, migrations e testes.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Executar tudo a partir de um clone limpo.
+    </li>
+  </ul>
+
+  <h2>Vídeo de aproximadamente cinco minutos</h2>
+
+  <ol>
+    <li>0:00–0:30 — problema, integrantes e objetivo.</li>
+    <li>0:30–1:10 — arquitetura e camadas.</li>
+    <li>1:10–1:40 — Docker Compose.</li>
+    <li>1:40–3:50 — autenticação e CRUDs.</li>
+    <li>3:50–4:20 — validações e erros.</li>
+    <li>4:20–4:45 — testes e cobertura mínima de 80%.</li>
+    <li>4:45–5:00 — README, collection e repositório.</li>
+  </ol>
+
+  <ul class="contains-task-list">
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Preparar roteiro.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Ensaiar e garantir legibilidade.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Não mostrar senhas, JWT_SECRET ou outras credenciais.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Adicionar o link do vídeo à entrega.
+    </li>
+  </ul>
+
+  <h2>Regras implementadas e validadas em 27/10/2026</h2>
+  <ul>
+    <li>Tipo associado a usuários não pode ser excluído nem renomeado para outro nome: HTTP 409. A FK permanece como proteção final e conflitos de integridade retornam 409 sem expor SQL.</li>
+    <li>A consulta /auth/me busca usuário e tipo associados pelo ID. Ausência retorna 404. AuthService.login foi implementado pelo usuário; testes de autenticação ficam com ele.</li>
+    <li>Somente RESTAURANT_OWNER existente pode criar restaurante. Alteração e exclusão continuam restritas ao proprietário.</li>
+    <li>Horários devem abrir antes de fechar no mesmo dia. Intervalos adjacentes são permitidos; sobreposição é rejeitada com 400. Dias fechados usam lista vazia; períodos nulos são rejeitados. Períodos que cruzam meia-noite devem ser divididos entre os dias.</li>
+    <li>Restaurante com itens não pode ser excluído: 409. Os itens devem ser removidos antes, sem exclusão em cascata do cardápio.</li>
+    <li>GET, PUT e DELETE de item consultam restaurantId e menuItemId juntos. URL de outro restaurante retorna 404. Mutações continuam exigindo o proprietário.</li>
+    <li>Não há ADMIN. Cada usuário só pode alterar o próprio tipo para CUSTOMER ou RESTAURANT_OWNER. Tipos personalizados não podem ser autoatribuídos. Quem possui restaurante não pode mudar para CUSTOMER: 409.</li>
+    <li>Somente RESTAURANT_OWNER pode criar, atualizar e excluir o catálogo de tipos. A autorização consulta o estado atual no banco, sem depender de claims antigas do token. Consultas permanecem disponíveis a usuários autenticados.</li>
+    <li>Os tipos CUSTOMER e RESTAURANT_OWNER precisam existir para registro e adesão ao perfil de proprietário; script SQL manual de preparo já existe; execução e migrations continuam pendentes.</li>
+    <li>ProblemDetail é o formato único de erros, incluindo validação, JSON inválido e falhas da cadeia de segurança. ApiErrorResponse e FieldErrorResponse sem uso foram removidos.</li>
+    <li>SecurityFilter vazio removido. OAuth2 Resource Server mantém a autenticação; token com subject ausente, inválido, não positivo ou fora de Long recebe 401.</li>
+    <li>JWT_SECRET deve conter Base64 de pelo menos 32 bytes. Valor de desenvolvimento e .env.example foram corrigidos; não são credenciais de produção.</li>
+    <li>Rotas existentes preservadas sem introduzir /api/v1. IDs Long, preços em centavos, paginação e separação domínio/JPA preservados.</li>
+  </ul>
+  <h2>README, Swagger e Postman — 27/10/2026</h2>
+  <p>
+    README.md criado com requisitos, configuração, execução, arquitetura, endpoints,
+    exemplos, regras, erros e limites atuais. Swagger UI disponível em
+    /swagger-ui.html; OpenAPI em /v3/api-docs e /v3/api-docs.yaml, com JWT Bearer,
+    paginação e erros. Dependência springdoc-openapi 3.2.0 compatível com Boot 4.1.
+    API_DOCS_ENABLED permite desabilitar a documentação.
+  </p>
+  <p>
+    Pasta postman/ criada com collection de 51 requisições, environment local,
+    instruções e script SQL manual para preparar os tipos iniciais.
+    Collection validada contra o schema oficial Postman v2.1; 52 scripts,
+    22 bodies e cobertura das 24 operações conferidos.
+    O contrato de login permanece identificado como pendente e ignorado por padrão.
+    Não houve execução da collection contra o banco nem execução do script SQL.
+  </p>
+  <p>
+    OpenApiIntegrationTests adicionou três testes de integração web sem banco,
+    validando documentação pública, recursos do Swagger e proteção das rotas.
+    Essa validação inicial é histórica; a seleção atual de negócio tem 86 testes aprovados e contextLoads aprovado com H2.
+    Docker, migrations, JaCoCo e vídeo continuam pendentes; o profile de testes já foi criado.
+  </p>
+
+  <h2>Validação anterior dos módulos de negócio — antes do CRUD de usuários</h2>
+  <p>Compilação limpa aprovada e 86 testes aprovados, sem falhas ou erros.</p>
+  <table>
+    <thead><tr><th>Grupo</th><th>Casos aprovados</th></tr></thead>
+    <tbody>
+      <tr><td>services: Restaurant, MenuItem, User e UserType</td><td>38</td></tr>
+      <tr><td>mappers: Address, OpeningHours, Restaurant, MenuItem e UserType</td><td>12</td></tr>
+      <tr><td>controllers: Restaurant, MenuItem, User e UserType</td><td>22</td></tr>
+      <tr><td>integration: persistência de Restaurant, MenuItem, User e UserType com H2</td><td>13</td></tr>
+      <tr><td>Phase2DataGuardianApplicationTests.contextLoads</td><td>1</td></tr>
+    </tbody>
+  </table>
+  <p>Corrigida e coberta por teste de regressão a duplicação de horários ao atualizar
+    restaurante mantendo os mesmos períodos. RestaurantPersistenceAdapter preserva
+    os IDs dos períodos inalterados dentro de uma transação. Os métodos privados
+    foram renomeados para ensureRestaurantOwnership e ensureEligibleOwner sem mudar
+    as regras de negócio.</p>
+  <p>H2 tem escopo de testes e não altera a configuração MySQL da aplicação.
+    Permanecem pendentes JaCoCo/cobertura, execução contra MySQL real e collection
+    ponta a ponta. Os testes de autenticação foram apenas realocados, sem novos
+    cenários nem execução nesta seleção.</p>
+
+  <h2>Organização dos testes por camada e recurso — 27/10/2026</h2>
+  <p>Os arquivos de testes foram separados em services/, mappers/, controllers/,
+    integration/, security/ e support/ dentro de src/test/java/com/api_application/phase_2_data_guardian.
+    Cada recurso possui seu arquivo: RestaurantServiceTest, MenuItemServiceTest,
+    UserTypeServiceTest e UserServiceTest, com separação equivalente para controllers,
+    mappers e integração de persistência.</p>
+  <p>As classes genéricas de negócio foram substituídas pelos arquivos de cada recurso.
+    A preparação compartilhada de JPA/H2 fica em support/PersistenceIntegrationSupport.
+    Os casos existentes de autenticação foram somente realocados, mantendo as asserções.
+    O smoke test da aplicação permanece na raiz do pacote de testes.</p>
+  <p>86 testes de negócio passaram após a reorganização. O teste combinado de paginação
+    de restaurante e tipos foi dividido em dois, sem perder suas asserções. AuthServiceTest,
+    HttpSecurityTests e OpenApiIntegrationTests permanecem fora dessa seleção.
+    Os nomes de classes citados nas validações anteriores são históricos.</p>
+
+  <h2>Mapper HTTP do cardápio — 27/10/2026</h2>
+  <p>MenuItemResponseMapper criado em infra/http/mapper. O MenuItemController usa
+    o mapper nas respostas de criação, consulta por ID, atualização e listagem
+    paginada com Page.map. Os nove campos de MenuItemResponse foram preservados.</p>
+  <p>Validação direcionada: 10 testes passaram (9 do MenuItemControllerTest e
+    contextLoads), sem falhas ou erros. Três cenários HTTP novos conferem resposta
+    completa, retorno do item salvo no PUT e preservação da paginação.
+    A compilação passou. A seleção ampla anterior de 86 testes não foi repetida
+    nesta refatoração; seu resultado permanece como histórico.</p>
+
+  <h2>CRUD completo de usuários — 27/10/2026</h2>
+  <ul>
+    <li>Criação permanece em POST /auth/register; adicionados GET /users, GET /users/{userId}, PUT /users/{userId} e DELETE /users/{userId}.</li>
+    <li>Listagem paginada somente com ID, nome e tipo, sem email, senha ou hash; ordenação por id/name.</li>
+    <li>Perfil completo, alteração de nome/email e exclusão restritos ao próprio usuário. Não foi criado papel ADMIN.</li>
+    <li>Email normalizado e duplicidade retorna 409. Atualização preserva senha, tipo, ID e data de criação.</li>
+    <li>Exclusão de conta com restaurantes bloqueada com 409. FK preservada como proteção final.</li>
+    <li>UserResponseMapper concentra as conversões de perfil e resumo. Swagger atualizado automaticamente pelos contratos do controller.</li>
+    <li>Collection ampliada para 51 requisições, com cobertura das 24 operações e limpeza dos dois usuários de teste. JSON/schema, 52 scripts e 22 bodies validados; execução ponta a ponta ainda pendente.</li>
+    <li>25 testes de usuários acrescentados: 11 de serviço, 9 de controller e 5 de integração. Seleção completa de negócio: 114 testes aprovados, sem falhas ou erros. Compilação Maven aprovada.</li>
+    <li>Login e código de autenticação não foram alterados. Testes de autenticação permanecem com o usuário; revogação de JWT não foi adicionada.</li>
+  </ul>
+
+  <h2>Próxima etapa recomendada</h2>
+  <p>Medir a cobertura com JaCoCo, validar no MySQL real, tornar a execução reproduzível
+    e executar a collection ponta a ponta. O banco isolado de testes já está pronto.
+    A validação dos componentes de autenticação fica com o usuário.</p>
+
+  <h2>Critério de pronto</h2>
+
+  <ul class="contains-task-list">
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Nenhum endpoint obrigatório retorna 501.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      O projeto compila com sucesso.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Login e autenticação funcionam com JWT.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Docker Compose inicia aplicação e banco do zero.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      A collection executa o fluxo completo.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox" checked>
+      Compilação aprovada e 114 testes de negócio aprovados com H2, organizados por camada e recurso.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      Executar a suíte completa após a validação de autenticação pelo usuário.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      JaCoCo comprova pelo menos 80% de cobertura.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      O README permite executar o projeto sem ajuda externa.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      O repositório está público e sem segredos.
+    </li>
+    <li class="task-list-item">
+      <input disabled type="checkbox">
+      O vídeo demonstra funcionalidades, arquitetura, Docker e testes.
+    </li>
+  </ul>
+</main>

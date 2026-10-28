@@ -1,0 +1,1567 @@
+{
+  "info": {
+    "_postman_id": "7c55a1ef-0d39-4b54-9abd-c7f38c39ad32",
+    "name": "Data Guardian — FIAP Fase 2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Execute as pastas 00 a 07 em ordem, com MySQL e API ativos e CUSTOMER/RESTAURANT_OWNER previamente cadastrados. Cobre usuários, tipos, restaurantes e cardápios. A limpeza exclui os recursos e os dois usuários de teste. A pasta 90 de login permanece ignorada por padrão, aguardando a validação de autenticação pelo usuário. Consulte postman/README.md."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 — Documentação",
+      "item": [
+        {
+          "name": "OpenAPI público",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v3/api-docs",
+            "description": "OpenAPI público",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.test(\"OpenAPI e JWT\", () => { const d=pm.response.json(); pm.expect(d.openapi).to.match(/^3\\./); pm.expect(d.components.securitySchemes.bearerAuth.scheme).to.eql(\"bearer\"); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Configuração do Swagger UI",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v3/api-docs/swagger-config",
+            "description": "Configuração do Swagger UI",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Documentação pública; requer API_DOCS_ENABLED=true."
+    },
+    {
+      "name": "01 — Cadastro e preparação",
+      "item": [
+        {
+          "name": "Cadastrar proprietário como CUSTOMER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/register",
+            "description": "Cadastrar proprietário como CUSTOMER",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Proprietário Guardian\",\n  \"email\": \"{{ownerEmail}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const id = Date.now().toString();",
+                  "pm.environment.set(\"runId\", id);",
+                  "pm.environment.set(\"ownerEmail\", \"guardian.owner.\"+id+\"@example.com\");",
+                  "pm.environment.set(\"customerEmail\", \"guardian.customer.\"+id+\"@example.com\");",
+                  "[\"accessToken\",\"customerAccessToken\",\"userId\",\"customerUserId\",\"restaurantId\",\"otherRestaurantId\",\"menuItemId\",\"userTypeId\",\"customerTypeId\",\"ownerTypeId\"].forEach(k => pm.environment.unset(k));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "pm.environment.set(\"accessToken\", pm.response.json().accessToken);",
+                  "pm.environment.set(\"userId\", pm.response.json().user.id);",
+                  "pm.test(\"Registro inicia CUSTOMER\", () => pm.expect(pm.response.json().user.userType.name).to.eql(\"CUSTOMER\"));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Descobrir IDs de CUSTOMER e RESTAURANT_OWNER",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/user-types?page=0&size=100&sort=name,asc",
+            "description": "Descobrir IDs de CUSTOMER e RESTAURANT_OWNER"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "const content=pm.response.json().content;",
+                  "[ [\"CUSTOMER\",\"customerTypeId\"], [\"RESTAURANT_OWNER\",\"ownerTypeId\"] ].forEach(([name,key]) => { const type=content.find(t=>t.name===name); pm.test(\"Tipo inicial \"+name+\" existe\", () => pm.expect(type).to.be.an(\"object\")); if(type) pm.environment.set(key,type.id); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Optar pelo tipo RESTAURANT_OWNER",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/{{userId}}/user-type",
+            "description": "Altera apenas o próprio usuário. O token de cadastro continua válido: a regra consulta o tipo atual no banco.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userTypeId\": {{ownerTypeId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.test(\"Tipo proprietário\", () => pm.expect(pm.response.json().name).to.eql(\"RESTAURANT_OWNER\"));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar tipo associado ao usuário",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/users/{{userId}}/user-type",
+            "description": "Consultar tipo associado ao usuário"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.test(\"Associação atual\", () => pm.expect(pm.response.json().name).to.eql(\"RESTAURANT_OWNER\"));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar proprietário autenticado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me",
+            "description": "Consultar proprietário autenticado"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.test(\"Tipo atual consultado no banco\", () => pm.expect(pm.response.json().userType.name).to.eql(\"RESTAURANT_OWNER\"));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cadastrar cliente para cenários negativos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/register",
+            "description": "Cadastrar cliente para cenários negativos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cliente Guardian\",\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "pm.environment.set(\"customerAccessToken\", pm.response.json().accessToken);",
+                  "pm.environment.set(\"customerUserId\", pm.response.json().user.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar cliente autenticado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me",
+            "description": "Consultar cliente autenticado",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.test(\"Cliente\", () => pm.expect(pm.response.json().userType.name).to.eql(\"CUSTOMER\"));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 — Tipos de usuário",
+      "item": [
+        {
+          "name": "Criar tipo temporário",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/user-types",
+            "description": "Criar tipo temporário",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"TEMP_{{runId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "pm.environment.set(\"userTypeId\", pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar tipos com paginação",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/user-types?page={{page}}&size={{size}}&sort=name,asc",
+            "description": "Listar tipos com paginação"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.test(\"Página\", () => pm.expect(pm.response.json().content).to.be.an(\"array\"));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar tipo temporário",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/user-types/{{userTypeId}}",
+            "description": "Consultar tipo temporário"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Atualizar tipo temporário",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/user-types/{{userTypeId}}",
+            "description": "Atualizar tipo temporário",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"UPDATED_{{runId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Mutações exigem RESTAURANT_OWNER. O tipo temporário permanece sem usuários associados."
+    },
+    {
+      "name": "03 — Restaurantes",
+      "item": [
+        {
+          "name": "Criar restaurante principal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/restaurants",
+            "description": "Criar restaurante principal",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Restaurante Guardian {{runId}}\",\n  \"address\": {\n    \"street\": \"Rua das Flores\",\n    \"number\": \"100\",\n    \"complement\": \"Loja 1\",\n    \"neighborhood\": \"Centro\",\n    \"city\": \"São Paulo\",\n    \"state\": \"SP\",\n    \"zipCode\": \"01001-000\"\n  },\n  \"cuisineType\": \"Brasileira\",\n  \"openingHours\": {\n    \"monday\": [\n      {\n        \"opensAt\": \"08:00:00\",\n        \"closesAt\": \"12:00:00\"\n      },\n      {\n        \"opensAt\": \"12:00:00\",\n        \"closesAt\": \"18:00:00\"\n      }\n    ],\n    \"tuesday\": [],\n    \"wednesday\": [],\n    \"thursday\": [],\n    \"friday\": [],\n    \"saturday\": [],\n    \"sunday\": []\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "pm.environment.set(\"restaurantId\", pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Criar segundo restaurante para testar vínculo da URL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/restaurants",
+            "description": "Criar segundo restaurante para testar vínculo da URL",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Segundo restaurante {{runId}}\",\n  \"address\": {\n    \"street\": \"Rua das Flores\",\n    \"number\": \"100\",\n    \"complement\": \"Loja 1\",\n    \"neighborhood\": \"Centro\",\n    \"city\": \"São Paulo\",\n    \"state\": \"SP\",\n    \"zipCode\": \"01001-000\"\n  },\n  \"cuisineType\": \"Brasileira\",\n  \"openingHours\": {\n    \"monday\": [\n      {\n        \"opensAt\": \"08:00:00\",\n        \"closesAt\": \"12:00:00\"\n      },\n      {\n        \"opensAt\": \"12:00:00\",\n        \"closesAt\": \"18:00:00\"\n      }\n    ],\n    \"tuesday\": [],\n    \"wednesday\": [],\n    \"thursday\": [],\n    \"friday\": [],\n    \"saturday\": [],\n    \"sunday\": []\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "pm.environment.set(\"otherRestaurantId\", pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar restaurantes com paginação",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/restaurants?page={{page}}&size={{size}}&sort=name,asc",
+            "description": "Listar restaurantes com paginação"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar restaurante principal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/restaurants/{{restaurantId}}",
+            "description": "Consultar restaurante principal"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Atualizar restaurante principal",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/restaurants/{{restaurantId}}",
+            "description": "Atualizar restaurante principal",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Restaurante Guardian atualizado {{runId}}\",\n  \"address\": {\n    \"street\": \"Rua das Flores\",\n    \"number\": \"100\",\n    \"complement\": \"Loja 1\",\n    \"neighborhood\": \"Centro\",\n    \"city\": \"São Paulo\",\n    \"state\": \"SP\",\n    \"zipCode\": \"01001-000\"\n  },\n  \"cuisineType\": \"Brasileira\",\n  \"openingHours\": {\n    \"monday\": [\n      {\n        \"opensAt\": \"08:00:00\",\n        \"closesAt\": \"12:00:00\"\n      },\n      {\n        \"opensAt\": \"12:00:00\",\n        \"closesAt\": \"18:00:00\"\n      }\n    ],\n    \"tuesday\": [],\n    \"wednesday\": [],\n    \"thursday\": [],\n    \"friday\": [],\n    \"saturday\": [],\n    \"sunday\": []\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 — Cardápio",
+      "item": [
+        {
+          "name": "Criar item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/restaurants/{{restaurantId}}/menu-items",
+            "description": "Criar item",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Prato do dia {{runId}}\",\n  \"description\": \"Arroz, feijão e legumes\",\n  \"priceInCents\": 2590,\n  \"dineInOnly\": false,\n  \"imagePath\": \"/images/prato-do-dia.jpg\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "pm.environment.set(\"menuItemId\", pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar cardápio com paginação",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/restaurants/{{restaurantId}}/menu-items?page={{page}}&size={{size}}&sort=name,asc",
+            "description": "Listar cardápio com paginação"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar item",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/restaurants/{{restaurantId}}/menu-items/{{menuItemId}}",
+            "description": "Consultar item"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Atualizar item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/restaurants/{{restaurantId}}/menu-items/{{menuItemId}}",
+            "description": "Atualizar item",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Prato do dia {{runId}}\",\n  \"description\": \"Arroz, feijão e legumes\",\n  \"priceInCents\": 2790,\n  \"dineInOnly\": false,\n  \"imagePath\": \"/images/prato-do-dia.jpg\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 — Usuários",
+      "description": "Diretório público para autenticados: somente ID, nome e tipo. Perfil completo, atualização e exclusão são restritos ao próprio usuário. A criação usa POST /auth/register.",
+      "item": [
+        {
+          "name": "Listar usuários sem dados privados",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users?page={{page}}&size={{size}}&sort=name,asc",
+            "header": [],
+            "description": "Listar usuários sem dados privados"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "pm.test(\"Resumo sem email e senha\", () => { pm.response.json().content.forEach(user => { pm.expect(user).not.to.have.property(\"email\"); pm.expect(user).not.to.have.property(\"password\"); pm.expect(user).not.to.have.property(\"passwordHash\"); }); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar próprio perfil",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/{{userId}}",
+            "header": [],
+            "description": "Consultar próprio perfil"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "pm.test(\"Perfil sem senha\", () => { pm.expect(pm.response.json()).not.to.have.property(\"password\"); pm.expect(pm.response.json()).not.to.have.property(\"passwordHash\"); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Atualizar nome e email do próprio usuário",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/users/{{userId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "Atualizar nome e email do próprio usuário",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Proprietário atualizado\",\n  \"email\": \"guardian.updated.{{runId}}@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "pm.environment.set(\"ownerEmail\",pm.response.json().email);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "403 — perfil de outro usuário",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/{{customerUserId}}",
+            "header": [],
+            "description": "403 — perfil de outro usuário"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"ProblemDetail\", () => { pm.expect(pm.response.json().status).to.eql(403); pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "403 — atualizar outro usuário",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/users/{{customerUserId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "403 — atualizar outro usuário",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Forbidden update\",\n  \"email\": \"forbidden.{{runId}}@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"ProblemDetail\", () => { pm.expect(pm.response.json().status).to.eql(403); pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "403 — excluir outro usuário",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/users/{{customerUserId}}",
+            "header": [],
+            "description": "403 — excluir outro usuário"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"ProblemDetail\", () => { pm.expect(pm.response.json().status).to.eql(403); pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "409 — excluir conta com restaurantes",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/users/{{userId}}",
+            "header": [],
+            "description": "409 — excluir conta com restaurantes"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"ProblemDetail\", () => { pm.expect(pm.response.json().status).to.eql(409); pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 — Cenários negativos",
+      "item": [
+        {
+          "name": "401 — token ausente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/restaurants",
+            "description": "401 — token ausente",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"ProblemDetail\", function () { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"); pm.expect(pm.response.json().status).to.eql(401); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "401 — token inválido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/restaurants",
+            "description": "401 — token inválido",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{invalidToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"ProblemDetail\", function () { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"); pm.expect(pm.response.json().status).to.eql(401); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "403 — CUSTOMER não cria restaurante",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/restaurants",
+            "description": "403 — CUSTOMER não cria restaurante",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Restaurante Guardian {{runId}}\",\n  \"address\": {\n    \"street\": \"Rua das Flores\",\n    \"number\": \"100\",\n    \"complement\": \"Loja 1\",\n    \"neighborhood\": \"Centro\",\n    \"city\": \"São Paulo\",\n    \"state\": \"SP\",\n    \"zipCode\": \"01001-000\"\n  },\n  \"cuisineType\": \"Brasileira\",\n  \"openingHours\": {\n    \"monday\": [\n      {\n        \"opensAt\": \"08:00:00\",\n        \"closesAt\": \"12:00:00\"\n      },\n      {\n        \"opensAt\": \"12:00:00\",\n        \"closesAt\": \"18:00:00\"\n      }\n    ],\n    \"tuesday\": [],\n    \"wednesday\": [],\n    \"thursday\": [],\n    \"friday\": [],\n    \"saturday\": [],\n    \"sunday\": []\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"ProblemDetail\", function () { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"); pm.expect(pm.response.json().status).to.eql(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "403 — não alterar tipo de outro usuário",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/{{customerUserId}}/user-type",
+            "description": "403 — não alterar tipo de outro usuário",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userTypeId\": {{ownerTypeId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"ProblemDetail\", function () { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"); pm.expect(pm.response.json().status).to.eql(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "403 — CUSTOMER não gerencia catálogo de tipos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/user-types",
+            "description": "403 — CUSTOMER não gerencia catálogo de tipos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"DENIED_{{runId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"ProblemDetail\", function () { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"); pm.expect(pm.response.json().status).to.eql(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "409 — tipo associado não pode ser excluído",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/user-types/{{customerTypeId}}",
+            "description": "409 — tipo associado não pode ser excluído"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"ProblemDetail\", function () { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"); pm.expect(pm.response.json().status).to.eql(409); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "409 — tipo associado não pode ser renomeado",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/user-types/{{customerTypeId}}",
+            "description": "409 — tipo associado não pode ser renomeado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"RENAMED_{{runId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"ProblemDetail\", function () { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"); pm.expect(pm.response.json().status).to.eql(409); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "400 — horários sobrepostos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/restaurants",
+            "description": "400 — horários sobrepostos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Restaurante Guardian {{runId}}\",\n  \"address\": {\n    \"street\": \"Rua das Flores\",\n    \"number\": \"100\",\n    \"complement\": \"Loja 1\",\n    \"neighborhood\": \"Centro\",\n    \"city\": \"São Paulo\",\n    \"state\": \"SP\",\n    \"zipCode\": \"01001-000\"\n  },\n  \"cuisineType\": \"Brasileira\",\n  \"openingHours\": {\n    \"monday\": [\n      {\n        \"opensAt\": \"08:00:00\",\n        \"closesAt\": \"13:00:00\"\n      },\n      {\n        \"opensAt\": \"12:00:00\",\n        \"closesAt\": \"18:00:00\"\n      }\n    ],\n    \"tuesday\": [],\n    \"wednesday\": [],\n    \"thursday\": [],\n    \"friday\": [],\n    \"saturday\": [],\n    \"sunday\": []\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"ProblemDetail\", function () { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"); pm.expect(pm.response.json().status).to.eql(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "400 — preço negativo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/restaurants/{{restaurantId}}/menu-items",
+            "description": "400 — preço negativo",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Prato do dia {{runId}}\",\n  \"description\": \"Arroz, feijão e legumes\",\n  \"priceInCents\": -1,\n  \"dineInOnly\": false,\n  \"imagePath\": \"/images/prato-do-dia.jpg\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"ProblemDetail\", function () { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"); pm.expect(pm.response.json().status).to.eql(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "404 — GET por outro restaurante",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/restaurants/{{otherRestaurantId}}/menu-items/{{menuItemId}}",
+            "description": "404 — GET por outro restaurante"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", function () { pm.response.to.have.status(404); });",
+                  "pm.test(\"ProblemDetail\", function () { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"); pm.expect(pm.response.json().status).to.eql(404); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "404 — PUT por outro restaurante",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/restaurants/{{otherRestaurantId}}/menu-items/{{menuItemId}}",
+            "description": "404 — PUT por outro restaurante",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Prato do dia {{runId}}\",\n  \"description\": \"Arroz, feijão e legumes\",\n  \"priceInCents\": 2590,\n  \"dineInOnly\": false,\n  \"imagePath\": \"/images/prato-do-dia.jpg\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", function () { pm.response.to.have.status(404); });",
+                  "pm.test(\"ProblemDetail\", function () { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"); pm.expect(pm.response.json().status).to.eql(404); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "404 — DELETE por outro restaurante",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/restaurants/{{otherRestaurantId}}/menu-items/{{menuItemId}}",
+            "description": "404 — DELETE por outro restaurante"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", function () { pm.response.to.have.status(404); });",
+                  "pm.test(\"ProblemDetail\", function () { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"); pm.expect(pm.response.json().status).to.eql(404); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "403 — outro usuário não altera cardápio",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/restaurants/{{restaurantId}}/menu-items/{{menuItemId}}",
+            "description": "403 — outro usuário não altera cardápio",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Prato do dia {{runId}}\",\n  \"description\": \"Arroz, feijão e legumes\",\n  \"priceInCents\": 2590,\n  \"dineInOnly\": false,\n  \"imagePath\": \"/images/prato-do-dia.jpg\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"ProblemDetail\", function () { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"); pm.expect(pm.response.json().status).to.eql(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "409 — restaurante com item não pode ser excluído",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/restaurants/{{restaurantId}}",
+            "description": "409 — restaurante com item não pode ser excluído"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"ProblemDetail\", function () { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"); pm.expect(pm.response.json().status).to.eql(409); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "409 — proprietário com restaurantes não vira CUSTOMER",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/{{userId}}/user-type",
+            "description": "409 — proprietário com restaurantes não vira CUSTOMER",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userTypeId\": {{customerTypeId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"ProblemDetail\", function () { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"); pm.expect(pm.response.json().status).to.eql(409); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Executar após 01–04 e antes da limpeza. Operações negativas não devem modificar os recursos válidos."
+    },
+    {
+      "name": "07 — Limpeza dos recursos",
+      "item": [
+        {
+          "name": "Excluir item",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/restaurants/{{restaurantId}}/menu-items/{{menuItemId}}",
+            "description": "Excluir item"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Excluir restaurante principal",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/restaurants/{{restaurantId}}",
+            "description": "Excluir restaurante principal"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Excluir segundo restaurante",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/restaurants/{{otherRestaurantId}}",
+            "description": "Excluir segundo restaurante"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Excluir tipo temporário",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/user-types/{{userTypeId}}",
+            "description": "Excluir tipo temporário"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Excluir conta do cliente de teste",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/users/{{customerUserId}}",
+            "header": [],
+            "description": "Excluir conta do cliente de teste",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Excluir conta do proprietário de teste",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/users/{{userId}}",
+            "header": [],
+            "description": "Excluir conta do proprietário de teste"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Remove itens, restaurantes, tipo temporário e os dois usuários de teste. Contas só podem ser excluídas pelo próprio usuário e após a remoção de seus restaurantes."
+    },
+    {
+      "name": "90 — Login pendente — ignorado por padrão",
+      "item": [
+        {
+          "name": "Login — ainda não implementado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "description": "Login implementado pelo usuário e reservado à validação de autenticação dele. Ignorado por padrão. Para teste manual de sucesso, utilize conta existente antes da limpeza; as contas do fluxo são excluídas na pasta 07.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{ownerEmail}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.environment.get(\"enablePendingLogin\") !== \"true\") { pm.execution.skipRequest(); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
