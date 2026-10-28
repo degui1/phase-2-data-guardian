@@ -1,0 +1,45 @@
+services:
+  data-guardian-db:
+    image: mysql:8.4
+    ports:
+      - "127.0.0.1:${DB_PORT:-3307}:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_USER=${DB_USERNAME}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - app:/var/lib/mysql
+    healthcheck:
+      test: >-
+          mysqladmin ping --host=127.0.0.1 &&
+          mysql --host=127.0.0.1
+          --user="$$MYSQL_USER"
+          --password="$$MYSQL_PASSWORD"
+          --database="$$MYSQL_DATABASE"
+          --execute='SELECT 1;'
+      retries: 3
+      interval: 5s
+      timeout: 5s
+      start_period: 30s
+
+  app:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      data-guardian-db:
+        condition: service_healthy
+    environment:
+      DB_HOST: data-guardian-db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+
+volumes:
+  app:
