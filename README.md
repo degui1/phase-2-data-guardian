@@ -2,6 +2,8 @@
 
 REST API for managing users, user types, restaurants, opening hours, and menu items. Registration and login issue JWT access tokens; restaurant and menu changes require ownership of the restaurant.
 
+Repository: [degui1/phase-2-data-guardian](https://github.com/degui1/phase-2-data-guardian).
+
 ## Technology stack
 
 | Technology | Version / purpose |
@@ -143,6 +145,8 @@ Flyway automatically applies migrations from `src/main/resources/db/migration` b
 | V4 | restaurant_opening_periods |
 | V5 | menu_items |
 | V6 | CUSTOMER and RESTAURANT_OWNER user types |
+
+On 2026-10-28, container recreation with the existing volume preserved user credentials, user type associations, restaurants, addresses, opening hours, menu items, and stored timestamps. Flyway validated all six migrations and reported that no migration was necessary. Temporary verification records were removed.
 
 The schema includes foreign keys and uniqueness constraints. Flyway records applied scripts in `flyway_schema_history`; Hibernate uses `ddl-auto=validate` to check the resulting schema. User type IDs are generated, so clients must discover them rather than assume fixed values.
 

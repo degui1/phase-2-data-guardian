@@ -1,92 +1,79 @@
 # Postman — Data Guardian
 
-Esta pasta reúne os arquivos para importar e exercitar a API.
+## Files
 
-| Arquivo | Uso |
+| File | Purpose |
 | --- | --- |
-| data-guardian.postman_collection.json | Collection v2.1 com 53 requisições, incluindo login ativo e cenários negativos |
-| local.postman_environment.json | Environment local, sem tokens preenchidos |
-| setup-user-types.sql | Preparo manual dos tipos CUSTOMER e RESTAURANT_OWNER, sem IDs fixos |
+| [data-guardian.postman_collection.json](data-guardian.postman_collection.json) | Postman v2.1 collection with 53 requests |
+| [local.postman_environment.json](local.postman_environment.json) | Local environment with empty tokens and resource IDs |
+| [setup-user-types.sql](setup-user-types.sql) | Optional manual seed for legacy setups; unnecessary with Flyway V6 |
 
-## Preparação
+## Start the API
 
-1. Configure as variáveis da API conforme o [README principal](../README.md).
-2. Inicie MySQL e a API. O Hibernate deve criar as tabelas.
-3. Execute setup-user-types.sql no banco selecionado pela aplicação. O script inclui somente os tipos ausentes.
-4. Importe a collection e o environment no Postman.
-5. Selecione **Data Guardian — Local** e ajuste baseUrl se necessário.
-6. Abra o Collection Runner e execute as pastas 00 a 07 na ordem apresentada, com uma iteração.
+Configure `.env` using the [main README](../README.md). Start the complete environment from the project root:
 
-Mantenha API_DOCS_ENABLED=true para a pasta 00. O fluxo foi desenhado para um banco de desenvolvimento. Ele cadastra dois usuários por execução, cria recursos de teste e executa mutações. A limpeza também exclui os dois usuários por suas próprias sessões, depois de remover os restaurantes. Se o fluxo for interrompido, recursos e contas podem permanecer no banco.
+```bash
+docker compose --profile full up -d --build
+```
 
-## Ordem do fluxo
+Without `--profile full`, Compose starts only MySQL. In that mode, start Java separately from the project root using your IDE or Maven Wrapper:
 
-| Pasta | Ações |
+```powershell
+docker compose up -d
+.\mvnw.cmd spring-boot:run
+```
+
+On Linux/macOS, use `./mvnw spring-boot:run`. Local Java connects to localhost:3307 by default; the containerized API connects to data-guardian-db:3306. The HTTP API is exposed at http://localhost:8080.
+
+Flyway creates the schema and V6 supplies CUSTOMER and RESTAURANT_OWNER automatically. Hibernate validates the schema. Do not run manual SQL preparation when using these migrations.
+
+## Run the collection
+
+1. Wait until the API has started and the migrations have completed.
+2. Import the collection and local environment into Postman.
+3. Select **Data Guardian — Local** and set `baseUrl` to `http://localhost:8080` without a trailing slash.
+4. Keep `API_DOCS_ENABLED=true` for folder 00.
+5. Run folders **00 through 07** in order with one iteration in the Collection Runner.
+
+| Folder | Flow |
 | --- | --- |
-| 00 — Documentação | OpenAPI e configuração pública do Swagger UI |
-| 01 — Cadastro e preparação | Registra proprietário inicialmente CUSTOMER; descobre os IDs dos tipos; altera o próprio tipo para RESTAURANT_OWNER; faz login e captura o novo JWT; registra um segundo CUSTOMER |
-| 02 — Tipos de usuário | Cria, lista, consulta e atualiza tipo temporário sem usuários associados |
-| 03 — Restaurantes | Cria dois restaurantes, lista, consulta e atualiza |
-| 04 — Cardápio | Cria, lista, consulta e atualiza um item |
-| 05 — Usuários | Lista resumos, consulta/atualiza o próprio perfil e verifica bloqueios de acesso/exclusão |
-| 06 — Cenários negativos | Valida 400, 401, 403, 404 e 409, incluindo URL de outro restaurante |
-| 07 — Limpeza dos recursos | Remove item, restaurantes, tipo temporário e as duas contas de teste |
+| 00 | Public OpenAPI and Swagger configuration |
+| 01 | Register owner as CUSTOMER, discover type IDs, switch to RESTAURANT_OWNER, log in, register a second customer |
+| 02 | Create, list, read, and update a temporary user type |
+| 03 | Create, list, read, and update restaurants |
+| 04 | Create, list, read, and update a menu item |
+| 05 | User summaries, own profile changes, access restrictions |
+| 06 | Invalid credentials and requests; authorization, lookup, and integrity errors |
+| 07 | Delete menu item, restaurants, temporary type, and both test accounts |
 
-A autenticação padrão da collection usa accessToken. Cadastro e documentação não enviam autenticação; requisições negativas usam token do cliente, token inválido ou nenhum token conforme o cenário.
+The flow creates unique emails and captures JWTs and IDs automatically. Run from the beginning so dependent requests have valid variables. An interrupted run can leave records behind; use captured IDs to clean them up before restarting.
 
-A primeira requisição de cadastro gera emails únicos, com timestamp, e limpa os IDs/tokens de uma execução anterior. Por isso, execute o fluxo desde o início. Se interromper antes da limpeza, os recursos podem permanecer; use os IDs capturados para removê-los antes de iniciar outra execução.
+## Environment variables
 
-## Variáveis
-
-| Variável | Origem / uso |
+| Variable | Purpose |
 | --- | --- |
-| baseUrl | URL da API, padrão http://localhost:8080, sem barra final |
-| page, size | Paginação, padrões 0 e 10 |
-| password | Senha de exemplo usada nos dois cadastros: Guardian@123 |
-| runId, ownerEmail, customerEmail | Gerados no primeiro cadastro |
-| accessToken, userId | Capturados do cadastro do proprietário |
-| customerAccessToken, customerUserId | Capturados do cadastro do cliente |
-| customerTypeId, ownerTypeId | Descobertos por nome na listagem de tipos |
-| userTypeId | ID do tipo temporário criado pelo fluxo |
-| restaurantId, otherRestaurantId | IDs dos dois restaurantes criados |
-| menuItemId | ID do item criado no restaurante principal |
-| invalidToken | Texto propositalmente inválido para testar 401 |
+| baseUrl | API URL; default http://localhost:8080 |
+| page, size | Pagination; defaults 0 and 10 |
+| password | Local sample password for generated accounts |
+| runId, ownerEmail, customerEmail | Generated by the initial registration request |
+| accessToken, userId | Owner session and user ID |
+| customerAccessToken, customerUserId | Customer session and user ID |
+| customerTypeId, ownerTypeId | Discovered by name in the user type listing |
+| userTypeId | Temporary user type ID |
+| restaurantId, otherRestaurantId | Generated restaurant IDs |
+| menuItemId | Generated menu item ID |
+| invalidToken | Deliberately invalid token for negative cases |
 
-A descoberta dos tipos iniciais consulta a primeira página com até 100 tipos ordenados por nome. Em um catálogo maior, ajuste essa requisição ou as variáveis antes das operações seguintes.
+User type discovery reads up to 100 types sorted by name. Adjust discovery for a larger catalog. Numeric IDs are interpolated as JSON numbers; running dependent requests before setup may produce invalid JSON.
 
-IDs em bodies são interpolados como números JSON, não como strings. Os IDs em branco só serão preenchidos após os passos de preparação. Executar requisição isolada antes disso pode produzir body inválido.
+The collection uses real tokens issued by registration/login; it does not need the JWT signing secret. Login refreshes the owner accessToken after the type change. Incorrect passwords and unknown emails must return the same generic 401 response without an access token. Accounts no longer exist after cleanup.
 
-Tokens e senha estão marcados como valores sensíveis no environment. Antes de exportar ou compartilhar um environment usado, limpe os tokens e quaisquer credenciais reais.
+Clear tokens and real credentials before sharing an exported environment. This collection creates, updates, and deletes development records.
 
-## Asserções
+## Assertions and recorded execution
 
-As requisições executáveis verificam o status esperado. Cenários negativos também verificam application/problem+json e o campo status. Alguns passos verificam o tipo atual, a estrutura da página e a especificação OpenAPI.
+Requests check status codes; negative cases also check ProblemDetail content and status. The flow covers successful 201/200/204 responses and error cases 400/401/403/404/409, including ownership restrictions and item URLs belonging to another restaurant.
 
-O diretório GET /users retorna somente ID, nome e tipo e aceita sort por id ou name. Os endpoints de perfil completo, atualização e exclusão são restritos ao próprio usuário. A criação é feita por POST /auth/register.
+On 2026-10-28, the full collection ran against the application in Docker Compose with MySQL 8.4: **53 requests and 86 assertions passed, with no failures**. Cleanup was confirmed in the database: no generated users, restaurants, or menu items remained; the two initial user types were preserved.
 
-O fluxo cobre:
-
-- 201 no cadastro e nas criações;
-- 200 em consultas e atualizações;
-- 204 na limpeza;
-- 400 para horários sobrepostos e preço negativo;
-- 401 para token ausente ou inválido;
-- 403 para operações sem permissão;
-- 404 para GET, PUT e DELETE de item pela URL de outro restaurante;
-- 409 para tipo associado, restaurante com itens e proprietário que tenta virar CUSTOMER.
-
-A collection não gera JWT artificialmente nem acessa o segredo JWT: utiliza tokens retornados pelo cadastro.
-
-## Login
-
-O login está ativo na pasta 01, depois da criação e mudança de tipo da conta do
-proprietário. Verifica 200, Bearer JWT e o tipo RESTAURANT_OWNER, e atualiza accessToken.
-
-A pasta 06 inclui senha incorreta e email inexistente, ambos com 401 genérico e
-sem accessToken na resposta. A variável enablePendingLogin e a pasta 90 foram removidas.
-As contas são excluídas na limpeza; repetir login com elas após a pasta 07 não é
-um cenário válido de sucesso. Execute o fluxo inteiro desde a preparação.
-
-## Limites da validação
-
-Os arquivos JSON e scripts podem ser validados sem banco. A execução completa exige MySQL, API ativa e os tipos iniciais. A criação da collection não comprova que o fluxo passou contra banco real ou Docker Compose; essa validação permanece pendente.
+The automated Java suites are separate. `docker-compose.test.yml` provides a disposable MySQL for integration tests; it does not start an HTTP API for this collection.
