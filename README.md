@@ -8,7 +8,7 @@ API REST desenvolvida para o Tech Challenge da pós-graduação em Java da FIAP.
 
 | Tecnologia | Versão / uso |
 | --- | --- |
-| Java | Código compilado para Java 17; validação local com JDK 21 |
+| Java | Java 21 para compilação, testes e execução |
 | Spring Boot | 4.1.1 |
 | Spring Web MVC | Controllers REST e validação |
 | Spring Data JPA / Hibernate | Persistência relacional |
@@ -60,7 +60,7 @@ Relacionamentos principais: UserType 1:N User, User 1:N Restaurant e Restaurant 
 
 ## Requisitos
 
-- JDK 17 ou superior, com JAVA_HOME apontando para o JDK.
+- JDK 21, com JAVA_HOME apontando para o JDK 21.
 - MySQL em execução e usuário com acesso ao banco configurado.
 - Acesso ao Maven Central na primeira compilação.
 - Postman atualizado para importar a collection e executar seus scripts.
