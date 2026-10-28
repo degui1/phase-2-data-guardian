@@ -13,7 +13,8 @@ import com.api_application.phase_2_data_guardian.application.usecase.AuthUseCase
 import com.api_application.phase_2_data_guardian.domain.entity.User;
 import com.api_application.phase_2_data_guardian.domain.entity.UserType;
 import com.api_application.phase_2_data_guardian.domain.exception.ConflictException;
-
+import com.api_application.phase_2_data_guardian.domain.exception.InvalidCredentialsException;
+import com.api_application.phase_2_data_guardian.domain.exception.ResourceNotFoundException;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -50,7 +51,7 @@ public class AuthService implements AuthUseCase {
                 .findByEmailIgnoreCase(normalizedEmail);
 
         if (existingUser.isPresent()) {
-            throw new ConflictException("Email already in use");
+            throw new ConflictException("Email already in use.");
         }
 
         UserType defaultUserType = userTypeRepository
@@ -90,12 +91,51 @@ public class AuthService implements AuthUseCase {
     }
 
     @Override
-    public AuthenticationResult login(LoginCommand command) {
-        return null;
+    public AuthenticationResult login(LoginCommand command) throws InvalidCredentialsException {
+        String normalizedEmail = command
+                .email()
+                .trim()
+                .toLowerCase(Locale.ROOT);
+
+        User user = userRepository
+                .findByEmailIgnoreCase(normalizedEmail)
+                .orElseThrow(() -> new InvalidCredentialsException("Email or password invalid."));
+
+        if (!passwordHasher.matches(command.password(), user.getPassword())) {
+            throw new InvalidCredentialsException("Email or password invalid.");
+        }
+
+        UserType userType = userTypeRepository
+                .findById(user.getUserTypeId())
+                .orElseThrow(() -> new IllegalStateException(
+                        "User type is not configured: "
+                                + user.getUserTypeId()
+                ));
+
+        AuthenticatedUser authenticatedUser = new AuthenticatedUser(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getUserTypeId(),
+                userType.getName()
+        );
+
+        TokenData token = tokenProvider.generate(authenticatedUser);
+
+        return new AuthenticationResult(
+                token.accessToken(),
+                TOKEN_TYPE,
+                token.expiresIn(),
+                authenticatedUser
+        );
     }
 
     @Override
     public AuthenticatedUser findAuthenticatedUser(Long userId) {
-        return null;
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+        UserType type = userTypeRepository.findById(user.getUserTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("User type", user.getUserTypeId()));
+        return new AuthenticatedUser(user.getId(), user.getName(), user.getEmail(), type.getId(), type.getName());
     }
 }
