@@ -33,7 +33,7 @@ public class OpenApiConfiguration {
                         .version("0.0.1-SNAPSHOT")
                         .description("API de restaurantes, cardápios e tipos de usuário. IDs Long; preços em centavos. "
                                 + "Use o token retornado por POST /auth/register no botão Authorize. "
-                                + "Login ainda não implementado. Todas as rotas de negócio, exceto registro e login, exigem JWT."))
+                                + "Registro e login emitem JWT. Todas as demais rotas de negócio exigem JWT."))
                 .components(new Components().addSchemas("ApiProblem", problem)
                         .addSecuritySchemes("bearerAuth", new SecurityScheme()
                                 .type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")))
@@ -47,6 +47,9 @@ public class OpenApiConfiguration {
                     && !handler.getMethod().getName().equals("me");
             if (publicAuth) {
                 operation.setSecurity(List.of());
+                if (handler.getMethod().getName().equals("login")) {
+                    operation.getResponses().addApiResponse("401", problem("Email ou senha inválidos"));
+                }
             } else {
                 operation.getResponses().addApiResponse("401", problem("Token ausente, inválido ou expirado"));
                 operation.getResponses().addApiResponse("403", problem("Operação não autorizada"));

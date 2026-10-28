@@ -64,7 +64,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Login — pendente", description = "Contrato reservado. Serviço ainda não implementado; não utilizar no fluxo atual.", deprecated = true)
+    @Operation(summary = "Autenticar usuário", description = "Valida email e senha e retorna JWT Bearer com os dados e o tipo atuais do usuário. Credenciais inválidas retornam 401.")
     public ResponseEntity<AuthResponse> login(
             @Valid @RequestBody LoginRequest request
     ) {
