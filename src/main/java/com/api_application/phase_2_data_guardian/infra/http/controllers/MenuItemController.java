@@ -11,6 +11,7 @@ import com.api_application.phase_2_data_guardian.domain.entity.MenuItem;
 import com.api_application.phase_2_data_guardian.infra.http.dto.request.menuitem.CreateMenuItemRequest;
 import com.api_application.phase_2_data_guardian.infra.http.dto.request.menuitem.UpdateMenuItemRequest;
 import com.api_application.phase_2_data_guardian.infra.http.dto.response.MenuItemResponse;
+import com.api_application.phase_2_data_guardian.infra.http.mapper.MenuItemResponseMapper;
 import jakarta.validation.Valid;
 import java.net.URI;
 import org.springframework.data.domain.Page;
@@ -29,8 +30,11 @@ public class MenuItemController {
 
     private final MenuItemUseCase menuItemUseCase;
 
-    public MenuItemController(MenuItemUseCase menuItemUseCase) {
+    private final MenuItemResponseMapper mapper;
+
+    public MenuItemController(MenuItemUseCase menuItemUseCase, MenuItemResponseMapper mapper) {
         this.menuItemUseCase = menuItemUseCase;
+        this.mapper = mapper;
     }
 
     @PostMapping
@@ -52,7 +56,7 @@ public class MenuItemController {
 
         MenuItem createdMenuItem = menuItemUseCase.create(authenticatedUserId(authentication), menuItem);
 
-        MenuItemResponse response = new MenuItemResponse(createdMenuItem.getId(), createdMenuItem.getRestaurantId(), createdMenuItem.getName(), createdMenuItem.getDescription(), createdMenuItem.getPriceInCents(), createdMenuItem.getDineInOnly(), createdMenuItem.getImagePath(), createdMenuItem.getCreatedAt(), createdMenuItem.getUpdatedAt());
+        MenuItemResponse response = mapper.toResponse(createdMenuItem);
 
         URI location = ServletUriComponentsBuilder
                 .fromCurrentRequest()
@@ -75,7 +79,7 @@ public class MenuItemController {
     ) {
         Page<MenuItemResponse> menuItems = menuItemUseCase
                 .findByRestaurantId(restaurantId, pageable)
-                .map(item -> new MenuItemResponse(item.getId(), item.getRestaurantId(), item.getName(), item.getDescription(), item.getPriceInCents(), item.getDineInOnly(), item.getImagePath(), item.getCreatedAt(), item.getUpdatedAt()));
+                .map(mapper::toResponse);
 
         return ResponseEntity.ok(menuItems);
     }
@@ -86,7 +90,7 @@ public class MenuItemController {
             @PathVariable Long restaurantId, @PathVariable Long menuItemId) {
         MenuItem menuItem = menuItemUseCase.findById(restaurantId, menuItemId);
 
-        return ResponseEntity.ok(new MenuItemResponse(menuItem.getId(), menuItem.getRestaurantId(), menuItem.getName(), menuItem.getDescription(), menuItem.getPriceInCents(), menuItem.getDineInOnly(), menuItem.getImagePath(), menuItem.getCreatedAt(), menuItem.getUpdatedAt()));
+        return ResponseEntity.ok(mapper.toResponse(menuItem));
     }
 
     @PutMapping("/{menuItemId}")
@@ -106,7 +110,7 @@ public class MenuItemController {
 
         MenuItem updatedMenuItem = menuItemUseCase.update(authenticatedUserId(authentication), restaurantId, menuItemId, menuItem);
 
-        MenuItemResponse response = new MenuItemResponse(updatedMenuItem.getId(), updatedMenuItem.getRestaurantId(), updatedMenuItem.getName(), updatedMenuItem.getDescription(), updatedMenuItem.getPriceInCents(), updatedMenuItem.getDineInOnly(), updatedMenuItem.getImagePath(), updatedMenuItem.getCreatedAt(), updatedMenuItem.getUpdatedAt());
+        MenuItemResponse response = mapper.toResponse(updatedMenuItem);
 
         return ResponseEntity.ok(response);
     }
