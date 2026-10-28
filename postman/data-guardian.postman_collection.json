@@ -3,7 +3,7 @@
     "_postman_id": "7c55a1ef-0d39-4b54-9abd-c7f38c39ad32",
     "name": "Data Guardian — FIAP Fase 2",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Execute as pastas 00 a 07 em ordem, com MySQL e API ativos e CUSTOMER/RESTAURANT_OWNER previamente cadastrados. Cobre usuários, tipos, restaurantes e cardápios. A limpeza exclui os recursos e os dois usuários de teste. A pasta 90 de login permanece ignorada por padrão, aguardando a validação de autenticação pelo usuário. Consulte postman/README.md."
+    "description": "Execute as pastas 00 a 07 em ordem, com MySQL e API ativos e CUSTOMER/RESTAURANT_OWNER previamente cadastrados. Inclui cadastro, login com captura do JWT, CRUDs e cenários negativos. A limpeza exclui recursos e as duas contas de teste. Consulte postman/README.md. A collection deve ser executada contra a aplicação real; os testes Java usam H2 isolado."
   },
   "auth": {
     "type": "bearer",
@@ -237,6 +237,48 @@
                   "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
                   "if (pm.response.code === 200) {",
                   "pm.test(\"Tipo atual consultado no banco\", () => pm.expect(pm.response.json().userType.name).to.eql(\"RESTAURANT_OWNER\"));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login do proprietário — capturar novo token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "description": "Login implementado e validado com banco isolado, BCrypt e JWT reais. Usa a conta criada na preparação após a alteração para RESTAURANT_OWNER.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{ownerEmail}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json();",
+                  "  pm.test(\"JWT e tipo atual\", () => { pm.expect(data.accessToken).to.be.a(\"string\").and.not.empty; pm.expect(data.tokenType).to.eql(\"Bearer\"); pm.expect(data.user.userType.name).to.eql(\"RESTAURANT_OWNER\"); });",
+                  "  pm.environment.set(\"accessToken\", data.accessToken);",
                   "}"
                 ]
               }
@@ -899,6 +941,82 @@
       "name": "06 — Cenários negativos",
       "item": [
         {
+          "name": "401 — login com senha incorreta",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{ownerEmail}}\",\n  \"password\": \"WrongPassword@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Deve retornar erro genérico de credenciais sem emitir token."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Credenciais inválidas sem token\", () => { const data=pm.response.json(); pm.expect(data.status).to.eql(401); pm.expect(data.code).to.eql(\"UNAUTHORIZED\"); pm.expect(data).not.to.have.property(\"accessToken\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "401 — login com email inexistente",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"unknown.{{runId}}@example.com\",\n  \"password\": \"WrongPassword@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Deve retornar erro genérico de credenciais sem emitir token."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Credenciais inválidas sem token\", () => { const data=pm.response.json(); pm.expect(data.status).to.eql(401); pm.expect(data.code).to.eql(\"UNAUTHORIZED\"); pm.expect(data).not.to.have.property(\"accessToken\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "401 — token ausente",
           "request": {
             "method": "GET",
@@ -1520,48 +1638,6 @@
         }
       ],
       "description": "Remove itens, restaurantes, tipo temporário e os dois usuários de teste. Contas só podem ser excluídas pelo próprio usuário e após a remoção de seus restaurantes."
-    },
-    {
-      "name": "90 — Login pendente — ignorado por padrão",
-      "item": [
-        {
-          "name": "Login — ainda não implementado",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/auth/login",
-            "description": "Login implementado pelo usuário e reservado à validação de autenticação dele. Ignorado por padrão. Para teste manual de sucesso, utilize conta existente antes da limpeza; as contas do fluxo são excluídas na pasta 07.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"{{ownerEmail}}\",\n  \"password\": \"{{password}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "auth": {
-              "type": "noauth"
-            }
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (pm.environment.get(\"enablePendingLogin\") !== \"true\") { pm.execution.skipRequest(); }"
-                ]
-              }
-            }
-          ]
-        }
-      ]
     }
   ]
 }

@@ -4,7 +4,7 @@ Esta pasta reúne os arquivos para importar e exercitar a API.
 
 | Arquivo | Uso |
 | --- | --- |
-| data-guardian.postman_collection.json | Collection v2.1 com 51 requisições, incluindo login pendente ignorado por padrão |
+| data-guardian.postman_collection.json | Collection v2.1 com 53 requisições, incluindo login ativo e cenários negativos |
 | local.postman_environment.json | Environment local, sem tokens preenchidos |
 | setup-user-types.sql | Preparo manual dos tipos CUSTOMER e RESTAURANT_OWNER, sem IDs fixos |
 
@@ -24,14 +24,13 @@ Mantenha API_DOCS_ENABLED=true para a pasta 00. O fluxo foi desenhado para um ba
 | Pasta | Ações |
 | --- | --- |
 | 00 — Documentação | OpenAPI e configuração pública do Swagger UI |
-| 01 — Cadastro e preparação | Registra proprietário inicialmente CUSTOMER; descobre os IDs dos tipos; altera o próprio tipo para RESTAURANT_OWNER; registra um segundo CUSTOMER |
+| 01 — Cadastro e preparação | Registra proprietário inicialmente CUSTOMER; descobre os IDs dos tipos; altera o próprio tipo para RESTAURANT_OWNER; faz login e captura o novo JWT; registra um segundo CUSTOMER |
 | 02 — Tipos de usuário | Cria, lista, consulta e atualiza tipo temporário sem usuários associados |
 | 03 — Restaurantes | Cria dois restaurantes, lista, consulta e atualiza |
 | 04 — Cardápio | Cria, lista, consulta e atualiza um item |
 | 05 — Usuários | Lista resumos, consulta/atualiza o próprio perfil e verifica bloqueios de acesso/exclusão |
 | 06 — Cenários negativos | Valida 400, 401, 403, 404 e 409, incluindo URL de outro restaurante |
 | 07 — Limpeza dos recursos | Remove item, restaurantes, tipo temporário e as duas contas de teste |
-| 90 — Login pendente | Ignorado por padrão; aguarda validação de autenticação pelo usuário |
 
 A autenticação padrão da collection usa accessToken. Cadastro e documentação não enviam autenticação; requisições negativas usam token do cliente, token inválido ou nenhum token conforme o cenário.
 
@@ -52,7 +51,6 @@ A primeira requisição de cadastro gera emails únicos, com timestamp, e limpa 
 | restaurantId, otherRestaurantId | IDs dos dois restaurantes criados |
 | menuItemId | ID do item criado no restaurante principal |
 | invalidToken | Texto propositalmente inválido para testar 401 |
-| enablePendingLogin | false; impede executar o contrato de login |
 
 A descoberta dos tipos iniciais consulta a primeira página com até 100 tipos ordenados por nome. Em um catálogo maior, ajuste essa requisição ou as variáveis antes das operações seguintes.
 
@@ -79,13 +77,15 @@ O fluxo cobre:
 
 A collection não gera JWT artificialmente nem acessa o segredo JWT: utiliza tokens retornados pelo cadastro.
 
-## Login pendente
+## Login
 
-A pasta 90 continua ignorada enquanto os testes de autenticação ficam com o usuário. O login foi implementado por ele; o rótulo do contrato ainda será ajustado após sua validação.
+O login está ativo na pasta 01, depois da criação e mudança de tipo da conta do
+proprietário. Verifica 200, Bearer JWT e o tipo RESTAURANT_OWNER, e atualiza accessToken.
 
-A requisição usa pm.execution.skipRequest() enquanto enablePendingLogin for diferente da string true. A limpeza exclui as contas usadas no fluxo: executar login com elas depois da limpeza não é um teste válido de sucesso.
-
-Para validar login manualmente, use uma conta existente antes da limpeza e ajuste o contrato conforme seus testes. A requisição não tem asserção de sucesso nem captura de token. Mantenha a pasta 90 fora de runners antigos que não suportam skipRequest().
+A pasta 06 inclui senha incorreta e email inexistente, ambos com 401 genérico e
+sem accessToken na resposta. A variável enablePendingLogin e a pasta 90 foram removidas.
+As contas são excluídas na limpeza; repetir login com elas após a pasta 07 não é
+um cenário válido de sucesso. Execute o fluxo inteiro desde a preparação.
 
 ## Limites da validação
 
