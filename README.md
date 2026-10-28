@@ -325,3 +325,17 @@ Recorded verification with Java 21: **174 tests passed**, with no failures, erro
 - HTML coverage report: `target/site/jacoco/index.html`
 - XML/CSV coverage: `target/site/jacoco/jacoco.xml` and `jacoco.csv`
 - Individual test reports: `target/surefire-reports/`
+
+### Run integration tests with MySQL
+
+H2 remains the default for `./mvnw clean verify`. To use the isolated MySQL test database instead:
+
+```powershell
+docker compose -f docker-compose.test.yml up -d --wait
+.\mvnw.cmd "-Dtest.database=mysql" clean verify
+docker compose -f docker-compose.test.yml down
+```
+
+On Linux/macOS, replace `.\mvnw.cmd` with `./mvnw`. In the IDE, add `-Dtest.database=mysql` to the test JVM options. The test profile resolver accepts only `h2` (default) or `mysql`.
+
+The test database uses localhost:3308, its own Compose project, and temporary storage. Its credentials are disposable local test values. Hibernate uses create-drop and Flyway is disabled in both test profiles because the tests create their own fixtures. These runs test persistence behavior; migration validation uses the full application environment with Flyway enabled. Never point this profile at a database whose data must be retained.
