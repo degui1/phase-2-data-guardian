@@ -23,7 +23,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
-@ActiveProfiles("test")
+@ActiveProfiles(resolver = com.api_application.phase_2_data_guardian.support.TestDatabaseProfilesResolver.class)
 @Transactional
 class AuthIntegrationTest {
     @Autowired WebApplicationContext context;

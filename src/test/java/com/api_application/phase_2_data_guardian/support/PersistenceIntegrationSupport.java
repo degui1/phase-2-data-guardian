@@ -44,7 +44,7 @@ import static org.assertj.core.api.Assertions.*;
 
 @org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase(replace = org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace.NONE)
 @DataJpaTest(showSql = false)
-@ActiveProfiles("test")
+@ActiveProfiles(resolver = com.api_application.phase_2_data_guardian.support.TestDatabaseProfilesResolver.class)
 @Import({UserTypePersistenceAdapter.class, UserPersistenceAdapter.class, RestaurantPersistenceAdapter.class,
         MenuItemPersistenceAdapter.class, UserTypePersistenceMapper.class, UserPersistenceMapper.class,
         RestaurantPersistenceMapper.class, MenuItemPersistenceMapper.class, AddressPersistenceMapper.class,
