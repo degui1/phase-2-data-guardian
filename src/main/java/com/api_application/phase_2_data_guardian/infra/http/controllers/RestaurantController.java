@@ -1,5 +1,11 @@
 package com.api_application.phase_2_data_guardian.infra.http.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springdoc.core.annotations.ParameterObject;
+
 import com.api_application.phase_2_data_guardian.application.usecase.RestaurantUseCase;
 import com.api_application.phase_2_data_guardian.domain.entity.Address;
 import com.api_application.phase_2_data_guardian.domain.entity.OpeningHours;
@@ -27,6 +33,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.net.URI;
 import java.util.List;
 
+@Tag(name = "Restaurantes")
 @RestController
 @RequestMapping("/restaurants")
 public class RestaurantController {
@@ -37,8 +44,10 @@ public class RestaurantController {
     }
 
     @PostMapping
+    @Operation(summary = "Criar restaurante", description = "O proprietário é o usuário do JWT e deve ser RESTAURANT_OWNER. Horários do mesmo dia não podem sobrepor.")
+    @ApiResponse(responseCode = "201", description = "Recurso criado; URL no header Location")
     public ResponseEntity<RestaurantResponse> create(
-            Authentication authentication,
+            @Parameter(hidden = true) Authentication authentication,
             @Valid @RequestBody CreateRestaurantRequest request
     ) {
         Restaurant restaurant = new Restaurant(
@@ -57,19 +66,22 @@ public class RestaurantController {
     }
 
     @GetMapping
+    @Operation(summary = "Listar restaurantes", description = "Paginação: page inicia em zero; size padrão 10; sort padrão name,asc.")
     public ResponseEntity<Page<RestaurantResponse>> findAll(
-            @PageableDefault(size = 10, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
+            @ParameterObject @PageableDefault(size = 10, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(restaurantUseCase.findAll(pageable).map(this::toResponse));
     }
 
     @GetMapping("/{restaurantId}")
+    @Operation(summary = "Consultar restaurante", description = "Retorna restaurante, endereço, horários e proprietário.")
     public ResponseEntity<RestaurantResponse> findById(@PathVariable Long restaurantId) {
         return ResponseEntity.ok(toResponse(restaurantUseCase.findById(restaurantId)));
     }
 
     @PutMapping("/{restaurantId}")
+    @Operation(summary = "Atualizar restaurante", description = "Somente o proprietário. opensAt deve anteceder closesAt; intervalos adjacentes são aceitos.")
     public ResponseEntity<RestaurantResponse> update(
-            Authentication authentication,
+            @Parameter(hidden = true) Authentication authentication,
             @PathVariable Long restaurantId,
             @Valid @RequestBody UpdateRestaurantRequest request
     ) {
@@ -89,7 +101,9 @@ public class RestaurantController {
     }
 
     @DeleteMapping("/{restaurantId}")
-    public ResponseEntity<Void> delete(Authentication authentication, @PathVariable Long restaurantId) {
+    @Operation(summary = "Excluir restaurante", description = "Somente o proprietário. Restaurante com itens de cardápio retorna 409; remova os itens antes.")
+    @ApiResponse(responseCode = "204", description = "Recurso excluído", content = @io.swagger.v3.oas.annotations.media.Content)
+    public ResponseEntity<Void> delete(@Parameter(hidden = true) Authentication authentication, @PathVariable Long restaurantId) {
         restaurantUseCase.delete(authenticatedUserId(authentication), restaurantId);
         return ResponseEntity.noContent().build();
     }

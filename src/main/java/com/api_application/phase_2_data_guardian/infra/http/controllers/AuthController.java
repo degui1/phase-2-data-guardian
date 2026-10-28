@@ -1,5 +1,10 @@
 package com.api_application.phase_2_data_guardian.infra.http.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import com.api_application.phase_2_data_guardian.application.model.auth.AuthenticatedUser;
 import com.api_application.phase_2_data_guardian.application.model.auth.AuthenticationResult;
 import com.api_application.phase_2_data_guardian.application.model.auth.LoginCommand;
@@ -22,6 +27,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 
+@Tag(name = "Autenticação")
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
@@ -33,6 +39,8 @@ public class AuthController {
     }
 
     @PostMapping("/register")
+    @Operation(summary = "Cadastrar usuário", description = "Cria CUSTOMER e retorna token JWT. Requer CUSTOMER previamente cadastrado.")
+    @ApiResponse(responseCode = "201", description = "Recurso criado; URL no header Location")
     public ResponseEntity<AuthResponse> register(
             @Valid @RequestBody RegisterRequest request
     ) {
@@ -56,6 +64,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
+    @Operation(summary = "Login — pendente", description = "Contrato reservado. Serviço ainda não implementado; não utilizar no fluxo atual.", deprecated = true)
     public ResponseEntity<AuthResponse> login(
             @Valid @RequestBody LoginRequest request
     ) {
@@ -70,8 +79,9 @@ public class AuthController {
     }
 
     @GetMapping("/me")
+    @Operation(summary = "Consultar usuário autenticado", description = "Consulta usuário e tipo atuais pelo ID contido no subject do token.")
     public ResponseEntity<AuthenticatedUserResponse> me(
-            Authentication authentication
+            @Parameter(hidden = true) Authentication authentication
     ) {
         Long userId = Long.valueOf(authentication.getName());
 
