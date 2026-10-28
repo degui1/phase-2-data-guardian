@@ -8,11 +8,10 @@ import com.api_application.phase_2_data_guardian.infra.database.entity.UserTypeJ
 import com.api_application.phase_2_data_guardian.infra.database.mapper.UserPersistenceMapper;
 import com.api_application.phase_2_data_guardian.infra.database.repository.UserJpaRepository;
 import com.api_application.phase_2_data_guardian.infra.database.repository.UserTypeJpaRepository;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
-
-import java.util.Optional;
 
 @Component
 public class UserPersistenceAdapter implements UserRepository {
@@ -63,5 +62,9 @@ public class UserPersistenceAdapter implements UserRepository {
     @Override
     public void delete(User user) {
         repository.deleteById(user.getId());
+    }
+    @Override
+    public boolean existsByUserTypeId(Long userTypeId) {
+        return repository.existsByUserType_Id(userTypeId);
     }
 }

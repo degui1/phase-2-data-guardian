@@ -60,4 +60,8 @@ public class RestaurantPersistenceAdapter implements RestaurantRepository {
     public void delete(Restaurant restaurant) {
         repository.deleteById(restaurant.getId());
     }
+    @Override
+    public boolean existsByOwnerId(Long ownerId) {
+        return repository.existsByOwner_Id(ownerId);
+    }
 }

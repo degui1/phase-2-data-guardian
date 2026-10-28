@@ -5,9 +5,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface UserTypeUseCase {
-    UserType create(UserType userType);
+    UserType create(Long authenticatedUserId, UserType userType);
     Page<UserType> findAll(Pageable pageable);
     UserType findById(Long id);
-    UserType update(Long id, UserType userType);
-    void delete(Long id);
+    UserType update(Long authenticatedUserId, Long id, UserType userType);
+    void delete(Long authenticatedUserId, Long id);
 }
