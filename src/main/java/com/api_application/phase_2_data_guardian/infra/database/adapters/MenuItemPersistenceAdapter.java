@@ -8,11 +8,10 @@ import com.api_application.phase_2_data_guardian.infra.database.entity.Restauran
 import com.api_application.phase_2_data_guardian.infra.database.mapper.MenuItemPersistenceMapper;
 import com.api_application.phase_2_data_guardian.infra.database.repository.MenuItemJpaRepository;
 import com.api_application.phase_2_data_guardian.infra.database.repository.RestaurantJpaRepository;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
-
-import java.util.Optional;
 
 @Component
 public class MenuItemPersistenceAdapter implements MenuItemRepository {
@@ -47,13 +46,13 @@ public class MenuItemPersistenceAdapter implements MenuItemRepository {
     }
 
     @Override
-    public Optional<MenuItem> findById(Long id) {
-        return repository.findById(id).map(mapper::toDomain);
+    public Optional<MenuItem> findByIdAndRestaurantId(Long id, Long restaurantId) {
+        return repository.findByIdAndRestaurant_Id(id, restaurantId).map(mapper::toDomain);
     }
 
     @Override
-    public Page<MenuItem> findAll(Pageable pageable) {
-        return repository.findAll(pageable).map(mapper::toDomain);
+    public boolean existsByRestaurantId(Long restaurantId) {
+        return repository.existsByRestaurant_Id(restaurantId);
     }
 
     @Override

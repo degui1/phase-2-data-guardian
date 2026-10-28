@@ -26,7 +26,7 @@ public class MenuItemService implements MenuItemUseCase {
 
     @Override
     public MenuItem create(Long userId, MenuItem menuItem) {
-        checkOwner(userId, menuItem.getRestaurantId());
+        ensureRestaurantOwnership(userId, menuItem.getRestaurantId());
         validate(menuItem);
 
         return repository.save(menuItem);
@@ -47,19 +47,18 @@ public class MenuItemService implements MenuItemUseCase {
     }
 
     @Override
-    public MenuItem findById(Long id) {
-        return repository.findById(id)
+    public MenuItem findById(Long restaurantId, Long id) {
+        return repository.findByIdAndRestaurantId(id, restaurantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item", id));
     }
 
     @Override
-    public MenuItem update(Long userId, Long id, MenuItem menuItem) {
+    public MenuItem update(Long userId, Long restaurantId, Long id, MenuItem menuItem) {
         MenuItem menu = repository
-                .findById(id)
+                .findByIdAndRestaurantId(id, restaurantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item", id));
 
-
-        checkOwner(userId, menu.getRestaurantId());
+        ensureRestaurantOwnership(userId, menu.getRestaurantId());
 
         validate(menuItem);
 
@@ -73,12 +72,12 @@ public class MenuItemService implements MenuItemUseCase {
     }
 
     @Override
-    public void delete(Long userId, Long id) {
+    public void delete(Long userId, Long restaurantId, Long id) {
         MenuItem menu = repository
-                .findById(id)
+                .findByIdAndRestaurantId(id, restaurantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item", id));
 
-        checkOwner(userId, menu.getRestaurantId());
+        ensureRestaurantOwnership(userId, menu.getRestaurantId());
 
         repository.delete(menu);
     }
@@ -92,7 +91,7 @@ public class MenuItemService implements MenuItemUseCase {
         }
     }
 
-    private void checkOwner(Long userId, Long restaurantId) {
+    private void ensureRestaurantOwnership(Long userId, Long restaurantId) {
         Restaurant rest = restaurantRepository
                 .findById(restaurantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Restaurant", restaurantId));
