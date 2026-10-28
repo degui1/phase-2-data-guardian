@@ -34,3 +34,6 @@ build/
 
 # Local environment variables
 .env
+
+/docs/PHASE_2_REMAINING_TASKS.md
+/docs/PHASE_2_REMAINING_TASKS.html

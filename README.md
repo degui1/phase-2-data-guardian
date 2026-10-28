@@ -1,307 +1,241 @@
-# Data Guardian — Tech Challenge Fase 2
+# Data Guardian — FIAP Tech Challenge Phase 2
 
-API REST desenvolvida para o Tech Challenge da pós-graduação em Java da FIAP. Permite cadastrar e gerenciar usuários, tipos de usuário, restaurantes e itens de cardápio, com autenticação JWT e autorização por proprietário.
+REST API for managing users, user types, restaurants, opening hours, and menu items. Registration and login issue JWT access tokens; restaurant and menu changes require ownership of the restaurant.
 
-**Estado atual:** CRUDs e consulta do usuário autenticado implementados. O cadastro retorna um token JWT. O login foi implementado pelo usuário e validado com testes unitários, HTTP e integração com banco H2, BCrypt e JWT reais. O profile de testes usa H2 isolado. Docker e migrations permanecem pendentes.
+## Technology stack
 
-## Tecnologias
-
-| Tecnologia | Versão / uso |
+| Technology | Version / purpose |
 | --- | --- |
-| Java | Java 21 para compilação, testes e execução |
+| Java | 21 |
 | Spring Boot | 4.1.1 |
-| Spring Web MVC | Controllers REST e validação |
-| Spring Data JPA / Hibernate | Persistência relacional |
-| Spring Security / OAuth2 Resource Server | Validação de JWT e controle de acesso |
-| MySQL | Banco da aplicação |
-| springdoc-openapi / Swagger UI | 3.2.0 |
-| Maven Wrapper | Compilação, execução e testes |
-| JUnit / Mockito / MockMvc | Testes de regras, HTTP e segurança |
+| Maven Wrapper | 3.10.0 |
+| Spring Web MVC and Validation | REST endpoints and request validation |
+| Spring Data JPA / Hibernate | Relational persistence |
+| Spring Security / OAuth2 Resource Server | JWT authentication and authorization |
+| MySQL | 8.4 in Docker Compose |
+| Flyway | Versioned schema migrations and initial user types |
+| springdoc-openapi | 3.2.0; Swagger UI and OpenAPI |
+| JUnit, Mockito, MockMvc, H2 | Unit, HTTP, security, and integration tests |
+| JaCoCo | Coverage reporting and an 80% line coverage requirement |
+| Docker Compose | MySQL-only development and full application environments |
 
-As versões de Spring, Hibernate e das dependências de testes são gerenciadas pelo parent do Spring Boot no pom.xml.
+Spring Boot manages dependency versions unless explicitly overridden in `pom.xml`.
 
-## Organização e arquitetura
+## Features and architecture
 
-~~~text
+- User registration, login, authenticated profile, and user CRUD.
+- User type CRUD and user/type association.
+- Restaurant CRUD with embedded addresses and opening periods.
+- Menu item CRUD scoped to its restaurant, with prices stored as integer cents.
+- Pagination, validation, and consistent ProblemDetail error responses.
+
+The project separates domain entities and services, application use case/repository/security interfaces, and infrastructure implementations. Controllers call use cases; persistence adapters implement repository interfaces and map domain objects to JPA entities.
+
+```text
 src/main/java/com/api_application/phase_2_data_guardian/
-├── domain/
-│   ├── entity/          Entidades sem anotações JPA
-│   ├── exception/       Erros de negócio
-│   └── services/        Implementações dos casos de uso
-├── application/
-│   ├── model/          Contratos de autenticação
-│   ├── repository/     Ports de persistência
-│   ├── security/       Contratos de token e senha
-│   └── usecase/        Interfaces dos casos de uso
-└── infra/
-    ├── configuration/  Beans, segurança, JWT e OpenAPI
-    ├── database/       Entidades JPA, repositories, adapters e mappers
-    ├── http/           Controllers, DTOs e tratamento de erros
-    └── security/       Adapters de hash de senha e emissão de token
-postman/                Collection, environment e instruções
-docs/                   Relatório de pendências
-~~~
+  domain/         Entities, business services, and domain exceptions
+  application/    Use cases, repository/security interfaces, and models
+  infra/          REST controllers, DTOs, mappers, persistence, and security
+src/main/resources/db/migration/   Flyway SQL migrations
+src/test/java/                    Tests organized by layer and resource
+postman/                          API collection and environment
+```
 
-~~~mermaid
-flowchart LR
-    Client[Cliente HTTP] --> Security[Spring Security]
-    Security --> Controller[Controller e DTOs]
-    Controller --> UseCase[Interface do caso de uso]
-    UseCase --> Service[Service de domínio]
-    Service --> Port[Repository port]
-    Port --> Adapter[Persistence adapter e mapper]
-    Adapter --> JPA[Spring Data JPA]
-    JPA --> DB[(MySQL)]
-~~~
+Relationships: user type → users → restaurants → menu items. Opening periods belong to restaurants.
 
-Controllers dependem dos casos de uso. Services utilizam ports da aplicação, implementados pelos adapters da infraestrutura. Mappers convertem entidades de domínio e entidades JPA. A paginação usa Page e Pageable.
+## Requirements and configuration
 
-Relacionamentos principais: UserType 1:N User, User 1:N Restaurant e Restaurant 1:N MenuItem. Os horários são armazenados em períodos associados ao restaurante.
+For the full Docker environment, install Docker with Compose. For local application development and tests, also install JDK 21 and set `JAVA_HOME`. Maven is provided by the wrapper. The first build requires access to dependency and container registries.
 
-## Requisitos
+From the project root, copy the environment template:
 
-- JDK 21, com JAVA_HOME apontando para o JDK 21.
-- MySQL em execução e usuário com acesso ao banco configurado.
-- Acesso ao Maven Central na primeira compilação.
-- Postman atualizado para importar a collection e executar seus scripts.
+```powershell
+Copy-Item .env.example .env
+```
 
-Não é necessário instalar Maven separadamente: utilize o wrapper versionado.
+On Linux/macOS, use `cp .env.example .env`. Set your database passwords and generate a JWT secret. Keep `.env` out of Git.
 
-## Configuração
-
-As propriedades de src/main/resources/application.properties leem as variáveis abaixo.
-
-| Variável | Padrão de desenvolvimento | Finalidade |
+| Variable | Local setting / default | Purpose |
 | --- | --- | --- |
-| DB_HOST | localhost | Host do MySQL |
-| DB_PORT | 3306 | Porta do MySQL |
-| DB_NAME | phase_2_data_guardian | Nome do banco |
-| DB_USERNAME | root | Usuário do banco |
-| DB_PASSWORD | root | Senha do banco |
-| JPA_DDL_AUTO | update | Estratégia de criação/atualização do schema |
-| JPA_SHOW_SQL | false | Exibição de SQL |
-| JPA_FORMAT_SQL | false | Formatação de SQL |
-| JWT_SECRET | Chave de desenvolvimento no arquivo de propriedades | Base64 de pelo menos 32 bytes |
-| JWT_ISSUER | phase-2-data-guardian | Emissor esperado do JWT |
-| JWT_EXPIRATION_SECONDS | 3600 | Duração do token em segundos |
-| API_DOCS_ENABLED | true | Habilita Swagger UI e OpenAPI |
-| SERVER_PORT | 8080 | Porta HTTP, propriedade padrão do Spring Boot |
+| DB_HOST | localhost | Database host for Java running locally |
+| DB_PORT | 3307 | Host port published by the MySQL container |
+| DB_NAME | phase_2_data_guardian | Application database |
+| DB_USERNAME | data_guardian | Application database user; must not be root |
+| DB_PASSWORD | Set in .env | Application database password |
+| MYSQL_ROOT_PASSWORD | Set in .env | MySQL administrator password |
+| JPA_DDL_AUTO | validate | Validate the schema managed by Flyway |
+| JPA_SHOW_SQL | false | Log SQL statements |
+| JPA_FORMAT_SQL | false | Format SQL logs |
+| JWT_SECRET | Set in .env | Base64-encoded secret of at least 32 random bytes |
+| JWT_ISSUER | phase-2-data-guardian | Expected JWT issuer |
+| JWT_EXPIRATION_SECONDS | 3600 | Token lifetime in seconds |
+| API_DOCS_ENABLED | true | Enable Swagger UI and OpenAPI |
+| SERVER_PORT | 8080 | HTTP port when running Java locally |
 
-O arquivo .env.example é uma referência. **O Spring Boot não carrega .env automaticamente neste projeto.** Configure as variáveis no terminal ou na configuração de execução da IDE.
+Generate the JWT secret using PowerShell 7:
 
-Exemplo no PowerShell 7, a partir da raiz do projeto:
+```powershell
+[Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
+```
 
-~~~powershell
-$env:DB_HOST = "localhost"
-$env:DB_PORT = "3306"
-$env:DB_NAME = "phase_2_data_guardian"
-$env:DB_USERNAME = "root"
-$env:DB_PASSWORD = "sua-senha-local"
-$env:JWT_SECRET = [Convert]::ToBase64String(
-    [System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32)
-)
-$env:JWT_ISSUER = "phase-2-data-guardian"
-$env:JWT_EXPIRATION_SECONDS = "3600"
-$env:API_DOCS_ENABLED = "true"
+Alternatively, use `openssl rand -base64 32`. Save the result as `JWT_SECRET` in `.env`. Changing it invalidates existing tokens.
+
+Java optionally imports `.env` through `spring.config.import` when started from the project root. Operating system environment variables take precedence. Compose reads `.env` for interpolation and passes the variables explicitly listed in each service's `environment` section.
+
+## Run with Docker Compose
+
+### Database only: local development
+
+```bash
+docker compose up -d
+```
+
+Without an active profile, only `data-guardian-db` starts. Run Java from your IDE with the project root as its working directory, or use:
+
+```powershell
 .\mvnw.cmd spring-boot:run
-~~~
+```
 
-O exemplo de geração de chave usa PowerShell 7 com .NET moderno. Em outros ambientes, gere 32 bytes aleatórios com uma ferramenta criptográfica e codifique em Base64. Configure a mesma chave em todas as instâncias; mudar a chave invalida os tokens existentes.
+On Linux/macOS, use `./mvnw spring-boot:run`.
 
-No Linux/macOS:
+The local application connects to `localhost:3307` by default. The MySQL port is bound to `127.0.0.1`; change `DB_PORT` if that host port is already in use.
 
-~~~bash
-export DB_HOST=localhost
-export DB_PORT=3306
-export DB_NAME=phase_2_data_guardian
-export DB_USERNAME=root
-export DB_PASSWORD='sua-senha-local'
-export JWT_SECRET="$(openssl rand -base64 32)"
-./mvnw spring-boot:run
-~~~
+### Database and application: full environment
 
-A conexão usa createDatabaseIfNotExist=true. O usuário precisa de permissão para criar o banco, ou o banco deve existir previamente. Com JPA_DDL_AUTO=update, o Hibernate cria/atualiza as tabelas ao iniciar. Não há migrations neste momento.
+```bash
+docker compose --profile full up -d --build
+```
 
-## Preparar os tipos iniciais
+The `app` service belongs to the `full` profile. Enabling it starts both services, builds the Dockerfile, and waits for MySQL to become healthy before starting Java.
 
-O cadastro exige que CUSTOMER exista. A criação de restaurantes exige RESTAURANT_OWNER. Como o catálogo exige um proprietário autenticado para mutações, os dois tipos precisam ser inseridos antes do primeiro cadastro.
+| Connection | Address |
+| --- | --- |
+| Local Java → MySQL | localhost:${DB_PORT}, default 3307 |
+| Containerized application → MySQL | data-guardian-db:3306 |
+| Client → API | http://localhost:8080 |
 
-1. Inicie a aplicação com MySQL acessível para criar as tabelas.
-2. Execute [postman/setup-user-types.sql](postman/setup-user-types.sql) no banco definido em DB_NAME.
-3. Inicie o fluxo de cadastro no Swagger ou no Postman.
+The containerized application receives its database credentials and JWT secret from Compose. `DB_HOST` and `DB_PORT` are explicitly set to the internal service address; local host port changes do not affect this connection. Other optional settings must be added to the service's `environment` section to override application defaults.
 
-Exemplo pelo cliente MySQL, a partir da raiz do projeto:
+The Dockerfile compiles with Maven 3.10.0 and JDK 21, then runs the JAR in a separate JRE 21 image. Its build command skips test execution; run the verification command below separately.
 
-~~~bash
-mysql --host=localhost --port=3306 --user=root --password --database=phase_2_data_guardian --execute="source postman/setup-user-types.sql"
-~~~
+```bash
+# Inspect services and logs
+docker compose --profile full ps
+docker compose --profile full logs -f app data-guardian-db
 
-O script inclui apenas os tipos ausentes e não pressupõe valores fixos para os IDs. É um preparo manual de desenvolvimento, não uma migration. Sem esse preparo, o registro falha porque o tipo padrão não está configurado.
+# Stop and remove both services while retaining database data
+docker compose --profile full down
+```
 
-## Executar e compilar
+To switch from the full environment to Java running locally, stop the `app` container first with `docker compose --profile full stop app`, then start Java locally. Starting only the database does not stop an application container that is already running.
 
-| Operação | Windows PowerShell | Linux/macOS |
-| --- | --- | --- |
-| Executar | .\mvnw.cmd spring-boot:run | ./mvnw spring-boot:run |
-| Compilar | .\mvnw.cmd compile | ./mvnw compile |
-| Testar | .\mvnw.cmd test | ./mvnw test |
-| Gerar JAR sem executar testes | .\mvnw.cmd package -DskipTests | ./mvnw package -DskipTests |
+MySQL data is stored in the named `app` volume. Removing containers retains the volume. MySQL initialization variables create the database and user only when the volume is empty; changing passwords in `.env` does not update existing database accounts.
 
-Execute o JAR gerado com as mesmas variáveis de ambiente:
+## Database migrations
 
-~~~bash
-java -jar target/phase-2-data-guardian-0.0.1-SNAPSHOT.jar
-~~~
+Flyway automatically applies migrations from `src/main/resources/db/migration` before JPA validation.
 
-A aplicação responde por padrão em http://localhost:8080. Não há prefixo /api/v1.
+| Migration | Creates / initializes |
+| --- | --- |
+| V1 | user_types |
+| V2 | users |
+| V3 | restaurants and address columns |
+| V4 | restaurant_opening_periods |
+| V5 | menu_items |
+| V6 | CUSTOMER and RESTAURANT_OWNER user types |
 
-## Swagger / OpenAPI
+The schema includes foreign keys and uniqueness constraints. Flyway records applied scripts in `flyway_schema_history`; Hibernate uses `ddl-auto=validate` to check the resulting schema. User type IDs are generated, so clients must discover them rather than assume fixed values.
 
-Com a aplicação iniciada:
+Start with an empty application database for the first migration run. A pre-existing schema created by Hibernate needs a deliberate migration/baseline strategy. Do not enable automatic baseline without checking schema compatibility. The manual `postman/setup-user-types.sql` script is unnecessary when V6 has run.
 
-- Interface: [Swagger UI](http://localhost:8080/swagger-ui.html)
-- Especificação JSON: [OpenAPI](http://localhost:8080/v3/api-docs)
-- Especificação YAML: [OpenAPI YAML](http://localhost:8080/v3/api-docs.yaml)
+## Authentication and business rules
 
-A documentação é pública; as rotas de negócio mantêm suas regras de autenticação. Para desabilitar a documentação, defina API_DOCS_ENABLED=false.
+Register with `POST /auth/register` or sign in with `POST /auth/login`. Both return `accessToken`, `tokenType`, `expiresIn`, and the user's current details. Registration assigns the CUSTOMER type.
 
-1. Execute POST /auth/register com um email ainda não cadastrado.
-2. Copie o campo accessToken.
-3. Clique em **Authorize**, cole apenas o token, sem o prefixo Bearer, e confirme.
-4. Consulte GET /user-types, identifique o ID de RESTAURANT_OWNER e altere o próprio tipo com PUT /users/{userId}/user-type.
-5. Crie restaurantes e itens do cardápio.
-
-A especificação descreve os bodies, a paginação, os status e os erros ProblemDetail. O login está documentado como funcional e inclui a resposta 401 para credenciais inválidas.
-
-## Autenticação
-
-O cadastro cria um usuário CUSTOMER e retorna:
-
-~~~json
-{
-  "accessToken": "<token-retornado-pela-api>",
-  "tokenType": "Bearer",
-  "expiresIn": 3600,
-  "user": {
-    "id": 1,
-    "name": "Maria Silva",
-    "email": "maria@example.com",
-    "userType": { "id": 1, "name": "CUSTOMER" }
-  }
-}
-~~~
-
-IDs acima são ilustrativos. Use os valores retornados pelo seu banco.
-
-Nas chamadas protegidas:
-
-~~~http
-Authorization: Bearer <accessToken>
-~~~
-
-O JWT usa o ID do usuário no subject. O ID autenticado não é recebido por X-User-Id. O token precisa ter assinatura, emissor, validade e subject numérico positivo válidos. As regras de tipo consultam o banco, portanto a alteração do próprio tipo é reconhecida mesmo com o token de cadastro.
-
-**Login implementado e testado.** Normaliza o email, compara a senha com o hash
-armazenado e consulta o tipo atual para gerar o JWT e a resposta. Cadastro, login,
-consulta autenticada, credenciais inválidas e atualização do tipo foram validados
-em testes de integração com H2, BCrypt e JWT reais.
-
-## Endpoints
-
-Exceto registro, login e documentação, todas as rotas exigem Bearer JWT.
-
-| Método | Rota | Sucesso | Regra principal |
-| --- | --- | --- | --- |
-| POST | /auth/register | 201 | Cria CUSTOMER e emite JWT |
-| POST | /auth/login | 200 | Credenciais válidas emitem JWT; email ou senha inválidos retornam 401 |
-| GET | /auth/me | 200 | Usuário e tipo atuais |
-| GET | /user-types | 200 | Lista paginada |
-| GET | /user-types/{userTypeId} | 200 | Consulta por ID |
-| POST | /user-types | 201 | Somente RESTAURANT_OWNER |
-| PUT | /user-types/{userTypeId} | 200 | Somente RESTAURANT_OWNER; tipo em uso não pode ser renomeado |
-| DELETE | /user-types/{userTypeId} | 204 | Somente RESTAURANT_OWNER; tipo em uso retorna 409 |
-| GET | /users | 200 | Resumo paginado com ID, nome e tipo, para usuários autenticados |
-| GET | /users/{userId} | 200 | Dados completos somente do próprio usuário, sem senha/hash |
-| PUT | /users/{userId} | 200 | Atualiza apenas nome e email da própria conta |
-| DELETE | /users/{userId} | 204 | Exclui a própria conta se não houver restaurantes vinculados |
-| GET | /users/{userId}/user-type | 200 | Consulta do tipo associado |
-| PUT | /users/{userId}/user-type | 200 | Apenas o próprio usuário |
-| GET | /restaurants | 200 | Lista paginada |
-| GET | /restaurants/{restaurantId} | 200 | Consulta por ID |
-| POST | /restaurants | 201 | Usuário autenticado deve ser RESTAURANT_OWNER |
-| PUT | /restaurants/{restaurantId} | 200 | Apenas o proprietário |
-| DELETE | /restaurants/{restaurantId} | 204 | Apenas o proprietário e sem itens associados |
-| GET | /restaurants/{restaurantId}/menu-items | 200 | Cardápio paginado |
-| GET | /restaurants/{restaurantId}/menu-items/{menuItemId} | 200 | Item deve pertencer ao restaurante da URL |
-| POST | /restaurants/{restaurantId}/menu-items | 201 | Apenas o proprietário |
-| PUT | /restaurants/{restaurantId}/menu-items/{menuItemId} | 200 | Apenas o proprietário e com vínculo correto |
-| DELETE | /restaurants/{restaurantId}/menu-items/{menuItemId} | 204 | Apenas o proprietário e com vínculo correto |
-
-Criações retornam Location; exclusões bem-sucedidas não possuem body.
-
-O CRUD de usuários reutiliza POST /auth/register para criação. Não há um segundo
-endpoint de cadastro em POST /users. A listagem de usuários expõe apenas ID, nome
-e tipo; email e datas ficam na consulta do próprio perfil. A ordenação do diretório
-aceita somente id e name.
-
-### Exemplos de bodies
-
-Cadastro — senha de 8 a 64 caracteres, com maiúscula, minúscula, número, caractere especial e sem espaços:
-
-~~~json
+```json
 {
   "name": "Maria Silva",
   "email": "maria@example.com",
   "password": "Guardian@123"
 }
-~~~
+```
 
-Atualizar o próprio usuário com PUT /users/{userId}:
+For login, send only `email` and `password`. Registration passwords must contain 8–64 characters, uppercase and lowercase letters, a number, and a special character, without spaces.
 
-~~~json
-{
-  "name": "Maria Silva atualizada",
-  "email": "maria.atualizada@example.com"
-}
-~~~
+Protected requests use:
 
-Este endpoint preserva senha, tipo, ID e data de criação. O tipo continua sendo
-alterado pela rota específica de associação. Email já usado por outra conta
-retorna 409; tentativa de consultar, alterar ou excluir conta de outra pessoa
-retorna 403. Excluir conta com restaurantes também retorna 409.
+```http
+Authorization: Bearer <accessToken>
+```
 
-Criar/atualizar tipo:
+- JWT subject identifies the user; no X-User-Id header is needed.
+- Users may change only their own type to CUSTOMER or RESTAURANT_OWNER. There is no ADMIN role.
+- Custom types can exist in the catalog but cannot be self-assigned.
+- Only RESTAURANT_OWNER users may manage the type catalog or create restaurants.
+- Restaurant and menu mutations require ownership. A restaurant owner cannot switch to CUSTOMER while owning restaurants.
+- A restaurant with menu items cannot be deleted until those items are removed.
+- User profile reads, updates, and deletion are restricted to the same user. User listing exposes only ID, name, and type; passwords and hashes are never returned.
+- Types associated with users cannot be deleted or renamed to a different name.
+- Opening periods must start before they end on the same day and cannot overlap. Adjacent periods are allowed; overnight periods must be split between days.
 
-~~~json
-{ "name": "DELIVERY_PARTNER" }
-~~~
+## Routes
 
-Alterar o próprio tipo:
+All routes except registration, login, and API documentation require a JWT. Resource IDs are Long values. There is no `/api/v1` prefix.
 
-~~~json
+| Method | Route | Success | Behavior |
+| --- | --- | --- | --- |
+| POST | /auth/register | 201 | Register and issue JWT |
+| POST | /auth/login | 200 | Authenticate and issue JWT |
+| GET | /auth/me | 200 | Current authenticated profile |
+| GET | /users | 200 | Paginated user summaries |
+| GET | /users/{userId} | 200 | Own profile |
+| PUT | /users/{userId} | 200 | Update own name and email |
+| DELETE | /users/{userId} | 204 | Delete own account without restaurants |
+| GET | /users/{userId}/user-type | 200 | Read associated type |
+| PUT | /users/{userId}/user-type | 200 | Change own type |
+| GET | /user-types | 200 | Paginated types |
+| GET | /user-types/{userTypeId} | 200 | Read type |
+| POST | /user-types | 201 | Create type |
+| PUT | /user-types/{userTypeId} | 200 | Update type |
+| DELETE | /user-types/{userTypeId} | 204 | Delete unused type |
+| GET | /restaurants | 200 | Paginated restaurants |
+| GET | /restaurants/{restaurantId} | 200 | Read restaurant |
+| POST | /restaurants | 201 | Create restaurant |
+| PUT | /restaurants/{restaurantId} | 200 | Update owned restaurant |
+| DELETE | /restaurants/{restaurantId} | 204 | Delete owned restaurant without items |
+| GET | /restaurants/{restaurantId}/menu-items | 200 | Paginated restaurant menu |
+| GET | /restaurants/{restaurantId}/menu-items/{menuItemId} | 200 | Read item in this restaurant |
+| POST | /restaurants/{restaurantId}/menu-items | 201 | Create item in owned restaurant |
+| PUT | /restaurants/{restaurantId}/menu-items/{menuItemId} | 200 | Update item in owned restaurant |
+| DELETE | /restaurants/{restaurantId}/menu-items/{menuItemId} | 204 | Delete item in owned restaurant |
+
+Creation responses include `Location`. Successful deletion responses have no body. Menu lookup uses both restaurant and item IDs; using another restaurant's URL returns 404.
+
+### Request examples
+
+Change your user type using an ID returned by `GET /user-types`:
+
+```json
 { "userTypeId": 2 }
-~~~
+```
 
-Criar/atualizar restaurante — ownerId é obtido do JWT e não é enviado no body:
+Create or update a restaurant. The owner comes from the JWT, not the request body. Include all seven days; an empty list means closed.
 
-~~~json
+```json
 {
-  "name": "Restaurante Guardian",
+  "name": "Guardian Restaurant",
   "address": {
     "street": "Rua das Flores",
     "number": "100",
-    "complement": "Loja 1",
+    "complement": "Store 1",
     "neighborhood": "Centro",
     "city": "São Paulo",
     "state": "SP",
     "zipCode": "01001-000"
   },
-  "cuisineType": "Brasileira",
+  "cuisineType": "Brazilian",
   "openingHours": {
-    "monday": [
-      { "opensAt": "08:00:00", "closesAt": "12:00:00" },
-      { "opensAt": "12:00:00", "closesAt": "18:00:00" }
-    ],
+    "monday": [{ "opensAt": "08:00:00", "closesAt": "18:00:00" }],
     "tuesday": [],
     "wednesday": [],
     "thursday": [],
@@ -310,156 +244,84 @@ Criar/atualizar restaurante — ownerId é obtido do JWT e não é enviado no bo
     "sunday": []
   }
 }
-~~~
+```
 
-Criar/atualizar item — 2590 representa R$ 25,90:
+Create or update a menu item. `2590` represents BRL 25.90. `imagePath` is an image reference; this API does not provide an upload endpoint.
 
-~~~json
+```json
 {
-  "name": "Prato do dia",
-  "description": "Arroz, feijão e legumes",
+  "name": "Daily special",
+  "description": "Rice, beans and vegetables",
   "priceInCents": 2590,
   "dineInOnly": false,
-  "imagePath": "/images/prato-do-dia.jpg"
+  "imagePath": "/images/daily-special.jpg"
 }
-~~~
+```
 
-imagePath armazena uma referência à imagem. Não existe endpoint de upload neste projeto.
+### Pagination and errors
 
-### Paginação
-
-~~~http
+```http
 GET /restaurants?page=0&size=10&sort=name,asc
 GET /restaurants/1/menu-items?page=0&size=10&sort=priceInCents,desc
-~~~
+```
 
-- A primeira página é 0.
-- O tamanho padrão dos controllers é 10.
-- A ordenação padrão é name,asc.
-- As respostas são páginas com content e metadados de paginação.
+Pages are zero-based; default page size is 10 and default ordering is `name,asc`. User directory ordering accepts `id` and `name`. Responses contain `content` and pagination metadata.
 
-## Regras de negócio
+Errors use `application/problem+json` and Spring ProblemDetail:
 
-- IDs usam Long; preços usam Long em centavos.
-- Usuários alteram apenas o próprio tipo entre CUSTOMER e RESTAURANT_OWNER. Não há papel ADMIN.
-- Tipos personalizados podem existir no catálogo, mas não podem ser autoatribuídos.
-- Quem possui restaurantes não pode mudar para CUSTOMER; a API retorna 409.
-- Somente RESTAURANT_OWNER gerencia o catálogo de tipos.
-- Tipo associado a usuários não pode ser excluído nem renomeado para outro nome.
-- O proprietário do restaurante precisa existir e ter tipo RESTAURANT_OWNER.
-- Horário de abertura deve anteceder o fechamento no mesmo dia. Períodos sobrepostos são rejeitados; períodos adjacentes são aceitos.
-- Todos os dias devem estar presentes no body de horários. Lista vazia representa dia fechado. Intervalos que cruzem meia-noite precisam ser divididos entre os dias.
-- Restaurante com itens não pode ser excluído. Remova os itens primeiro.
-- Consultar, atualizar ou excluir item pela URL de outro restaurante retorna 404.
-- Apenas o proprietário pode criar, atualizar ou excluir itens do próprio cardápio.
-
-## Respostas de erro
-
-O formato é application/problem+json, baseado em ProblemDetail.
-
-| Status | Situação |
+| Status | Meaning |
 | --- | --- |
-| 400 | Body, parâmetros, preço ou horários inválidos |
-| 401 | Token ausente, inválido ou expirado |
-| 403 | Usuário sem autorização para a operação |
-| 404 | Recurso não encontrado, inclusive item fora do restaurante informado |
-| 409 | Email/nome duplicado, tipo em uso, restaurante com itens ou conflito de integridade |
+| 400 | Invalid request, price, or opening hours |
+| 401 | Missing/invalid/expired token or invalid login credentials |
+| 403 | Operation not authorized |
+| 404 | Resource not found |
+| 409 | Duplicate email/name, type in use, or relationship/integrity conflict |
 
-~~~json
-{
-  "type": "about:blank",
-  "title": "Resource conflict",
-  "status": 409,
-  "detail": "User type is associated with users",
-  "instance": "/user-types/1",
-  "code": "RESOURCE_CONFLICT"
-}
-~~~
+## Swagger and OpenAPI
 
-Erros de validação podem incluir errors, com mensagens por campo. O campo code aparece nos handlers específicos; erros gerais tratados pelo Spring podem não incluí-lo.
+With the application running:
 
-## Postman
+- [Swagger UI](http://localhost:8080/swagger-ui.html)
+- [OpenAPI JSON](http://localhost:8080/v3/api-docs)
+- [OpenAPI YAML](http://localhost:8080/v3/api-docs.yaml)
 
-Os arquivos estão separados em [postman/](postman/README.md):
+Register or log in, copy `accessToken`, and enter only the token in Swagger's **Authorize** dialog. Discover RESTAURANT_OWNER through `GET /user-types`, update your own type, and create restaurants/menu items. Set `API_DOCS_ENABLED=false` to disable documentation when configuring the application environment.
 
-- data-guardian.postman_collection.json
-- local.postman_environment.json
-- setup-user-types.sql
+## Postman collection
 
-Importe a collection e o environment, selecione **Data Guardian — Local** e execute as pastas 00 a 07 em ordem. O fluxo cadastra dois usuários, captura tokens e IDs, testa os CRUDs e cenários negativos e remove itens, restaurantes, tipo temporário e as duas contas criadas. A exclusão de conta ocorre somente após remover seus restaurantes.
+Import both files from `postman/`:
 
-O login faz parte da preparação, captura o JWT e possui cenários negativos de email inexistente e senha incorreta. Os detalhes de execução e as variáveis estão no README da pasta.
+- [Collection: 53 requests](postman/data-guardian.postman_collection.json)
+- [Local environment](postman/local.postman_environment.json)
 
-## Testes e cobertura
+Select **Data Guardian — Local**, set `baseUrl` to `http://localhost:8080`, and run folders **00 through 07** in order using the Collection Runner, with one iteration. Keep API documentation enabled for folder 00.
 
-Os testes estão organizados por camada e recurso em src/test/java/com/api_application/phase_2_data_guardian:
+The flow registers two users with unique emails, discovers type IDs, captures JWTs, changes the owner's type, logs in, exercises CRUD/pagination/negative cases, and removes the created resources and accounts. Tokens and IDs are captured automatically. Run from the beginning rather than starting with requests that depend on unset IDs. An interrupted run can leave test resources in the database.
 
-| Pasta | Responsabilidade |
-| --- | --- |
-| services | Regras e casos de uso de Auth, User, UserType, Restaurant e MenuItem |
-| controllers | Contratos HTTP, validação, status e respostas sem senha/hash |
-| mappers | Conversão entre domínio e persistência |
-| integration | Fluxos reais com H2; registro/login/JWT; persistência; Swagger |
-| security | BCrypt, emissão/validação JWT e cadeia de segurança |
-| support | Preparação compartilhada dos testes de persistência |
+Flyway V6 supplies the required initial types; no manual SQL setup is needed. Clear tokens and credentials before sharing an exported environment. The collection exercises mutable development data.
 
-### Executar toda a suíte
+## Build and tests
 
-~~~powershell
-.\mvnw.cmd clean verify
-~~~
+| Task | Windows PowerShell | Linux/macOS |
+| --- | --- | --- |
+| Run locally | .\mvnw.cmd spring-boot:run | ./mvnw spring-boot:run |
+| Compile | .\mvnw.cmd compile | ./mvnw compile |
+| Run tests | .\mvnw.cmd test | ./mvnw test |
+| Verify coverage and package | .\mvnw.cmd clean verify | ./mvnw clean verify |
+| Package without running tests | .\mvnw.cmd package -DskipTests | ./mvnw package -DskipTests |
 
-No Linux/macOS, use ./mvnw clean verify. É necessário JAVA_HOME válido e acesso ao
-Maven Central na primeira execução. O profile test usa H2 em memória em modo MySQL
-e os testes que precisam dele o ativam explicitamente; não usam o MySQL local.
+Run the packaged application from the project root with the same configuration:
 
-O comando verify executa os testes, gera o JAR e verifica o mínimo de **80% de
-cobertura de linhas** sobre o conjunto completo das classes de produção, sem
-exclusões configuradas. O comando .\mvnw.cmd test executa a suíte e gera os
-relatórios, mas o limite mínimo é verificado na fase verify.
+```bash
+java -jar target/phase-2-data-guardian-0.0.1-SNAPSHOT.jar
+```
 
-- Resultado registrado: **174 testes, zero falhas, zero erros e zero ignorados**.
-- Cobertura de linhas: **92,45%** (1053 de 1139).
-- Cobertura de decisões: **90,00%** (144 de 160).
-- Cobertura de instruções: **94,21%** (4363 de 4631).
-- Relatório visual: target/site/jacoco/index.html.
-- Relatórios por teste: target/surefire-reports/.
-- Relatórios de cobertura para ferramentas: target/site/jacoco/jacoco.xml e jacoco.csv.
+Tests are organized into `services`, `controllers`, `mappers`, `integration`, `security`, and shared `support` packages. Integration tests activate the `test` profile and use isolated H2 databases in MySQL mode, including real BCrypt/JWT flows.
 
-O Maven configura explicitamente o agente do Mockito junto ao JaCoCo. Não é mais
-necessário informar o caminho do Mockito em -DargLine para executar a suíte.
-Ao executar testes diretamente pela IDE, a configuração de agentes é a da IDE.
+Recorded verification with Java 21: **174 tests passed**, with no failures, errors, or skipped tests. Coverage: **92.45% lines**, **90.00% branches**, **94.21% instructions**. These results describe the H2 test environment.
 
-Os testes escritos pelo usuário em AuthServiceTest foram preservados. Foi
-corrigido o mock de busca por email no cenário duplicado e adicionados casos de
-normalização, tipo padrão ausente, falha ao salvar, login válido, senha incorreta,
-email inexistente, tipo associado e tipo atualizado. A integração usa os services,
-adapters, banco H2, BCrypt, emissão/validação JWT e filtros reais, sem simular os
-casos de uso nesse fluxo.
+`verify` enforces at least **80% line coverage**, without production class exclusions. `test` generates reports but does not enforce the threshold. Maven configures Mockito and JaCoCo agents automatically.
 
-Swagger também é exercitado pela suíte. A collection agora possui **53 requisições**,
-com login ativo e captura de token; schema Postman v2.1, scripts e bodies foram
-validados. A collection não foi executada contra MySQL/Compose nesta rodada.
-
-H2 não comprova equivalência completa ao MySQL real; essa validação permanece pendente.
-
-## Pendências de entrega
-
-O checklist detalhado está em [docs/PHASE_2_REMAINING_TASKS.html](docs/PHASE_2_REMAINING_TASKS.html).
-
-- Executar os fluxos e a collection também contra a aplicação com MySQL real/Compose.
-- Validar os cenários de persistência também contra MySQL real/Compose; H2 e contextLoads já estão configurados e aprovados.
-- Ampliar a cobertura conforme novos requisitos; a suíte atual e o limite JaCoCo de 80% já estão aprovados.
-- Adicionar migrations e dados iniciais reproduzíveis.
-- Criar e validar Dockerfile e Docker Compose.
-- Executar a collection contra a aplicação com banco e, depois, contra o Compose.
-- Confirmar repositório público e execução a partir de clone limpo.
-- Informar integrantes e links finais da entrega; preparar o vídeo.
-
-Docker/Compose e migrations permanecem pendentes. A comprovação de cobertura está disponível nos relatórios JaCoCo gerados por verify.
-
-## Referências
-
-- [Documentação do Spring Boot](https://docs.spring.io/spring-boot/)
-- [Documentação e compatibilidade do springdoc-openapi](https://springdoc.org/)
-- [Formato de collection Postman v2.1](https://schema.getpostman.com/json/collection/v2.1.0/docs/index.html)
+- HTML coverage report: `target/site/jacoco/index.html`
+- XML/CSV coverage: `target/site/jacoco/jacoco.xml` and `jacoco.csv`
+- Individual test reports: `target/surefire-reports/`
