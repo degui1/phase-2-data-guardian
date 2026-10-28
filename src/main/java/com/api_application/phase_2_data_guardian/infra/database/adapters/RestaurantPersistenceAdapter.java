@@ -8,11 +8,11 @@ import com.api_application.phase_2_data_guardian.infra.database.entity.UserJpaEn
 import com.api_application.phase_2_data_guardian.infra.database.mapper.RestaurantPersistenceMapper;
 import com.api_application.phase_2_data_guardian.infra.database.repository.RestaurantJpaRepository;
 import com.api_application.phase_2_data_guardian.infra.database.repository.UserJpaRepository;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
-
-import java.util.Optional;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class RestaurantPersistenceAdapter implements RestaurantRepository {
@@ -32,6 +32,7 @@ public class RestaurantPersistenceAdapter implements RestaurantRepository {
     }
 
     @Override
+    @Transactional
     public Restaurant save(Restaurant restaurant) {
         UserJpaEntity userEntity =
                 this.userRepository.findById(restaurant.getOwnerId())
@@ -40,6 +41,21 @@ public class RestaurantPersistenceAdapter implements RestaurantRepository {
                         ));
 
         RestaurantJpaEntity entity = mapper.toJpaEntity(restaurant, userEntity);
+
+        if (restaurant.getId() != null) {
+            RestaurantJpaEntity existing = repository.findById(restaurant.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Restaurant", restaurant.getId()));
+            // Keep the identity of unchanged periods: inserting replacements before orphan deletion
+            // would violate the unique constraint on restaurant, day, opening and closing times.
+            for (var period : entity.getOpeningPeriods()) {
+                existing.getOpeningPeriods().stream()
+                        .filter(saved -> saved.getDayOfWeek() == period.getDayOfWeek()
+                                && saved.getOpensAt().equals(period.getOpensAt())
+                                && saved.getClosesAt().equals(period.getClosesAt()))
+                        .findFirst()
+                        .ifPresent(saved -> period.setId(saved.getId()));
+            }
+        }
 
         RestaurantJpaEntity savedEntity = repository.save(entity);
 
