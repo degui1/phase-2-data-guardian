@@ -3,20 +3,26 @@ package com.api_application.phase_2_data_guardian.infra.http.exception;
 import com.api_application.phase_2_data_guardian.domain.exception.BusinessRuleException;
 import com.api_application.phase_2_data_guardian.domain.exception.ConflictException;
 import com.api_application.phase_2_data_guardian.domain.exception.ForbiddenOperationException;
+import com.api_application.phase_2_data_guardian.domain.exception.InvalidCredentialsException;
 import com.api_application.phase_2_data_guardian.domain.exception.ResourceNotFoundException;
-import org.springframework.context.support.DefaultMessageSourceResolvable;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
-import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 @RestControllerAdvice
-public class CustomControllerAdvice {
+public class CustomControllerAdvice extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ProblemDetail handleResourceNotFoundException(
@@ -77,9 +83,10 @@ public class CustomControllerAdvice {
 
         return problem;
     }
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ProblemDetail handleValidationException(
-            MethodArgumentNotValidException exception
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(
+            MethodArgumentNotValidException exception, HttpHeaders headers,
+            HttpStatusCode status, WebRequest request
     ) {
         Map<String, String> errors = exception
                 .getBindingResult()
@@ -100,6 +107,20 @@ public class CustomControllerAdvice {
         problem.setProperty("code", "VALIDATION_ERROR");
         problem.setProperty("errors", errors);
 
+        return handleExceptionInternal(exception, problem, headers, status, request);
+    }
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail handleDataIntegrity(DataIntegrityViolationException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
+                "The operation conflicts with existing data");
+        problem.setProperty("code", "RESOURCE_CONFLICT");
+        return problem;
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ProblemDetail handleInvalidCredentials(RuntimeException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "Invalid credentials");
+        problem.setProperty("code", "UNAUTHORIZED");
         return problem;
     }
 }

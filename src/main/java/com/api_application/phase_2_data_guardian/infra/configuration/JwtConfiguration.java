@@ -1,14 +1,13 @@
 package com.api_application.phase_2_data_guardian.infra.configuration;
 
+import java.util.Base64;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
-
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import java.util.Base64;
 
 @Configuration
 public class JwtConfiguration {
@@ -51,7 +50,19 @@ public class JwtConfiguration {
                 .build();
 
         decoder.setJwtValidator(
-                JwtValidators.createDefaultWithIssuer(issuer)
+                new org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator<>(
+                        JwtValidators.createDefaultWithIssuer(issuer),
+                        jwt -> {
+                            try {
+                                if (Long.parseLong(jwt.getSubject()) > 0) {
+                                    return org.springframework.security.oauth2.core.OAuth2TokenValidatorResult.success();
+                                }
+                            } catch (RuntimeException ignored) {
+                                // Reject a token that cannot identify a user before it reaches a controller.
+                            }
+                            return org.springframework.security.oauth2.core.OAuth2TokenValidatorResult.failure(
+                                    new org.springframework.security.oauth2.core.OAuth2Error("invalid_token", "Invalid user subject", null));
+                        })
         );
 
         return decoder;
